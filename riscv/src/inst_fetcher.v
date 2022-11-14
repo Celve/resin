@@ -55,7 +55,7 @@ module inst_fetcher(
           inst_to_issuer <= cache_lines[index];
           rdy_to_issuer <= 1;
           pc <= next_pc;
-          next_pc <= next_pc == 8 ? 0 : next_pc + 4;
+          next_pc <= next_pc + 4;
         end else begin
           addr_to_mem_mgmt_unit <= pc;
           valid_to_mem_mgmt_unit <= 1;
@@ -108,7 +108,7 @@ module inst_fetcher(
         // only at this time can we switch the pc
         // the conversion of pc means the stage switching
         pc <= next_pc;
-        next_pc <= next_pc == 8 ? 0 : next_pc + 4; // TODO: predict pc
+        next_pc <= next_pc + 4; // TODO: predict pc
       end
     endcase
   end
