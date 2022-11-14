@@ -37,11 +37,11 @@ module mem_mgmt_unit (
   reg[`DATA_TYPE] data;
 
   parameter[2:0] STATE_0 = 0; // idle
-  parameter[2:0] STATE_1 = 1; // just send
-  parameter[2:0] STATE_2 = 2; // first byte
-  parameter[2:0] STATE_3 = 3; // second byte, tell cache to send a new one
-  parameter[2:0] STATE_4 = 4; // third byte
-  parameter[2:0] STATE_5 = 5; // fouth byte
+  parameter[2:0] STATE_1 = 1; // just send the addr to ram
+  parameter[2:0] STATE_2 = 2; // first byte, tell cache to send a new addr if any
+  parameter[2:0] STATE_3 = 3; // second byte, waiting for new addr
+  parameter[2:0] STATE_4 = 4; // third byte | first byte (if possible)
+  parameter[2:0] STATE_5 = 5; // fourth byte | second byte (if possible) | first byte (if possible)
 
   parameter[2:0] DEFAULT = 0;
   parameter[2:0] READ_DCACHE = 1;
@@ -62,14 +62,12 @@ module mem_mgmt_unit (
         if (valid_from_icache) begin
           addr_to_ram <= addr_from_icache;
           mode <= READ_ICACHE;
-        end
-        else if (valid_from_dcache) begin
+        end else if (valid_from_dcache) begin
           addr_to_ram <= addr_from_dcache;
           if (rw_flag_from_dcache) begin
             mode <= WRITE_DCACHE;
             data <= data_from_dcache[7:0];
-          end
-          else begin
+          end else begin
             mode <= READ_DCACHE;
           end
         end
@@ -79,16 +77,14 @@ module mem_mgmt_unit (
         end
       end
 
-      // ask to obtain the second 8 bits
+      // ask to obtain the second 8 bits, at this time, the first 8 bits haven't arrive yet
       STATE_1: begin
         case (mode)
           READ_ICACHE: begin
-            // data_to_icache[7:0] <= data_from_ram;
             addr_to_ram <= addr_from_icache + 1;
           end
 
           READ_DCACHE: begin
-            // data_to_dcache[7:0] <= data_from_ram;
             addr_to_ram <= addr_from_dcache + 1;
           end
 
@@ -100,7 +96,8 @@ module mem_mgmt_unit (
         state <= STATE_2;
       end
 
-      // ask to obtain the third 8 bits
+      // ask to obtain the third 8 bits, now we receive the first 8 bits
+      // for pipelining, we should ask the cache to send a new addr if any
       STATE_2: begin
         case (mode)
           READ_ICACHE: begin
@@ -126,7 +123,7 @@ module mem_mgmt_unit (
         state <= STATE_3;
       end
 
-      // ask to obtain the fourth 8 bits
+      // ask to obtain the fourth 8 bits, now we receive the second 8 bits
       STATE_3: begin
         case (mode)
           READ_ICACHE: begin
@@ -159,6 +156,9 @@ module mem_mgmt_unit (
   end
 
   always @(posedge clk) begin
+    // there might be a parallelism
+    // when receive the third 8 bits, we could tell the ram to fetch new data for new addr
+    // therefore there are two kinds of modes: mode and vice_mode
     case (vice_state)
       STATE_4: begin
         case (mode)

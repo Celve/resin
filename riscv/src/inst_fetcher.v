@@ -49,6 +49,7 @@ module inst_fetcher(
 
   always @(posedge clk) begin
     case (state)
+      // when it's idle, look at the icache first
       IDLE: begin
         if (cache_valid_bits[index] && cache_tags[index] == tag) begin
           inst_to_issuer <= cache_lines[index];
@@ -68,6 +69,7 @@ module inst_fetcher(
           count <= 3;
 
           // maybe the next pc isn't cached
+          // or else it's cached, the state has to be set to pending because it would not access memory in the next round
           if (!cache_valid_bits[next_index] || cache_tags[next_index] != next_tag) begin
             addr_to_mem_mgmt_unit <= next_pc;
             valid_to_mem_mgmt_unit <= 1;
