@@ -13,25 +13,41 @@
 `define CACHE_INDEX_WIDTH 8
 `define CACHE_LINE_WIDTH 2
 
-// for instruction fetcher
-`define INST_FETCHER_IDLE 0
-`define INST_FETCHER_BUSY 1
-
-// for memory controller
-`define MEM_CTRLER_PEDING 0
-`define MEM_CTRLER_DONE 1
-
-`define MEM_CTRLER_IDLE 0
-`define MEM_CTRLER_READING 1
-`define MEM_CTRLER_WRITING 2
-
-// for memory management unit
-`define MEM_MGMT_UNIT_IDLE 0
-`define MEM_MGMT_UNIT_READ_INST 1
-`define MEM_MGMT_UNIT_READ_DATA 2
-`define MEM_MGMT_UNIT_WRITE 3
-
-// for instruction
-`define INST_BYTE_NUM 4
-
-
+// instruction types
+`define LUI_INST 0
+`define AUIPC_INST 1
+`define JAL_INST 2
+`define JALR_INST 3
+`define BEQ_INST 4
+`define BNE_INST 5
+`define BLT_INST 6
+`define BGE_INST 7
+`define BLTU_INST 8
+`define BGEU_INST 9
+`define LB_INST 10
+`define LH_INST 11
+`define LW_INST 12
+`define LBU_INST 13
+`define LHU_INST 14
+`define SB_INST 15
+`define SH_INST 16
+`define SW_INST 17
+`define ADDI_INST 18
+`define SLTI_INST 19
+`define SLTIU_INST 20
+`define XORI_INST 21
+`define ORI_INST 22
+`define ANDI_INST 23
+`define SLLI_INST 24
+`define SRLI_INST 25
+`define SRAI_INST 26
+`define ADD_INST 27
+`define SUB_INST 28
+`define SLL_INST 29
+`define SLT_INST 30
+`define SLTU_INST 31
+`define XOR_INST 32
+`define SRL_INST 33
+`define SRA_INST 34
+`define OR_INST 35
+`define AND_INST 36

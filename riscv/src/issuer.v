@@ -1,6 +1,15 @@
+`ifndef ISSUER_V
+`define ISSUER_V
+
 `include "config.v"
+`include "decoder.v"
 
 module issuer(
+    input wire clk,
+    input wire rst,
+    input wire rdy,
+
+    input wire rdy_from_inst_fetcher,
     input wire[`INST_TYPE] inst_from_inst_fetcher);
 
   wire[`REG_ID_TYPE] rd;
@@ -8,14 +17,19 @@ module issuer(
   wire[`REG_ID_TYPE] rs2;
   wire[`IMM_TYPE] imm;
 
-  issuer issuer_0(
-           .inst(inst_from_inst_fetcher),
-           .rd(rd),
-           .rs1(rs1),
-           .rs2(rs2));
+  decoder decoder_0(
+            .inst(inst_from_inst_fetcher),
+            .rd(rd),
+            .rs1(rs1),
+            .rs2(rs2),
+            .imm(imm));
 
   always @(posedge clk) begin
+    if (rdy_from_inst_fetcher) begin
 
+    end
   end
 
 endmodule
+
+`endif
