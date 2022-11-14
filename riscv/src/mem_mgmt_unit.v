@@ -3,8 +3,7 @@
 /**
  * Protocol descriptions: 
  * 1. When icache or dcache want to send address to memory management unit, they must set the valid bit to be true.
- * 2. Until they are told by memory management unit that in the next cycle the operation could be done can they set the valid bit to be false.
- * 3. After the cycle that memory management unit told, if the valid bit is still true, it should be considered as a new request without doubt. 
+ * 2. When memory management unit is able to accept another address, it will set the ready bit to be true, only in next cycle.
  */
 
 module mem_mgmt_unit (
@@ -20,13 +19,13 @@ module mem_mgmt_unit (
     input wire[`ADDR_TYPE] addr_from_icache,
     input wire valid_from_icache,
     output reg[`DATA_TYPE] data_to_icache,
-    output reg next_cycle_send_to_icache,
+    output reg ready_to_icache,
 
     input wire[`ADDR_TYPE] addr_from_dcache,
     input wire[`DATA_TYPE] data_from_dcache,
     input wire valid_from_dcache,
     input wire rw_flag_from_dcache,
-    output reg next_cycle_send_to_dcache,
+    output reg ready_to_dcache,
     output reg[`DATA_TYPE] data_to_dcache);
 
   // FIXME: I don't take rdy and rst into consideration currently
@@ -52,8 +51,8 @@ module mem_mgmt_unit (
   initial begin
     state = STATE_0; // initialize it as idle
     mode = DEFAULT;
-    next_cycle_send_to_dcache = 0;
-    next_cycle_send_to_icache = 0;
+    ready_to_dcache = 0;
+    ready_to_icache = 0;
   end
 
   always @(posedge clk) begin
@@ -108,20 +107,20 @@ module mem_mgmt_unit (
             // data_to_icache[15:8] <= data_from_ram;
             data_to_icache[7:0] <= data_from_ram;
             addr_to_ram <= addr_from_icache + 2;
-            next_cycle_send_to_icache <= 1;
+            ready_to_icache <= 1;
           end
 
           READ_DCACHE: begin
             // data_to_dcache[15:8] <= data_from_ram;
             data_to_dcache[7:0] <= data_from_ram;
             addr_to_ram <= addr_from_dcache + 2;
-            next_cycle_send_to_dcache <= 1;
+            ready_to_dcache <= 1;
           end
 
           WRITE_DCACHE: begin
             data <= data[23:16];
             addr_to_ram <= addr_from_dcache + 2;
-            next_cycle_send_to_dcache <= 1;
+            ready_to_dcache <= 1;
           end
         endcase
         state <= STATE_3;
@@ -134,7 +133,7 @@ module mem_mgmt_unit (
             // data_to_icache[23:16] <= data_from_ram;
             data_to_icache[15:8] <= data_from_ram;
             addr_to_ram <= addr_from_icache + 3;
-            next_cycle_send_to_icache <= 0;
+            ready_to_icache <= 0;
             vice_state <= STATE_4;
             vice_mode <= READ_ICACHE;
           end
@@ -143,7 +142,7 @@ module mem_mgmt_unit (
             // data_to_dcache[23:16] <= data_from_ram;
             data_to_dcache[15:8] <= data_from_ram;
             addr_to_ram <= addr_from_dcache + 3;
-            next_cycle_send_to_dcache <= 0;
+            ready_to_dcache <= 0;
             vice_state <= STATE_4;
             vice_mode <= READ_DCACHE;
           end
@@ -151,7 +150,7 @@ module mem_mgmt_unit (
           WRITE_DCACHE: begin
             data <= data[31:17];
             addr_to_ram <= addr_from_dcache + 3;
-            next_cycle_send_to_dcache <= 0;
+            ready_to_dcache <= 0;
           end
         endcase
         state <= STATE_0;
