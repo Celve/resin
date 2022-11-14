@@ -1,3 +1,6 @@
+`ifndef INST_FETCHER_V
+`define INST_FETCHER_V
+
 `include "config.v"
 
 module inst_fetcher(
@@ -33,21 +36,20 @@ module inst_fetcher(
   wire[`TAG_TYPE] next_tag = next_pc[`ADDR_WIDTH - 1:`CACHE_INDEX_WIDTH + `CACHE_LINE_WIDTH];
   wire[`CACHE_INDEX_WIDTH - 1:0] next_index = next_pc[`CACHE_INDEX_WIDTH + `CACHE_LINE_WIDTH - 1:`CACHE_LINE_WIDTH];
 
-  initial begin
-    count = 0;
-    pc = 0;
-    next_pc = 4;
-    state = IDLE;
-    for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
-      cache_valid_bits[i] <= 0;
-      cache_tags[i] <= 0;
-      cache_lines[i] <= 0;
-    end
-  end
-
-  wire temp0 = cache_valid_bits[index], temp1 = cache_tags[index] == tag;
-
   always @(posedge clk) begin
+    // just for reset
+    if (rst) begin
+      state = IDLE;
+      count = 0;
+      pc = 0;
+      next_pc = 4;
+      for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
+        cache_valid_bits[i] <= 0;
+        cache_tags[i] <= 0;
+        cache_lines[i] <= 0;
+      end
+    end
+
     case (state)
       // when it's idle, look at the icache first
       IDLE: begin
@@ -55,11 +57,12 @@ module inst_fetcher(
           inst_to_issuer <= cache_lines[index];
           rdy_to_issuer <= 1;
           pc <= next_pc;
-          next_pc <= next_pc + 4;
+          next_pc <= next_pc + 4; // TODO: predict pc
         end else begin
           addr_to_mem_mgmt_unit <= pc;
           valid_to_mem_mgmt_unit <= 1;
           state <= INTERACTING;
+          rdy_to_issuer <= 0;
         end
 
       end
@@ -78,11 +81,12 @@ module inst_fetcher(
             valid_to_mem_mgmt_unit <= 0;
           end
         end
+
+
       end
     endcase
   end
 
-  // wait two cycles to fetch inst from inst fetcher
   always @(posedge clk) begin
     case (count)
       3: begin
@@ -93,8 +97,11 @@ module inst_fetcher(
         count <= 1;
       end
 
+      // after this, it would go to IDLE or INTERACTING
+      // therefore I only need to set rdy to 0 in these two states
       1: begin
         inst_to_issuer <= inst_from_mem_mgmt_unit;
+        rdy_to_issuer <= 1;
         count <= 0;
         cache_lines[index] <= inst_from_mem_mgmt_unit;
         cache_tags[index] <= tag;
@@ -110,6 +117,16 @@ module inst_fetcher(
         pc <= next_pc;
         next_pc <= next_pc + 4; // TODO: predict pc
       end
+
+      0: begin
+        if (state == INTERACTING) begin
+          rdy_to_issuer <= 0;
+        end
+      end
     endcase
   end
+
+  // wait two cycles to fetch inst from inst fetcher
 endmodule
+
+`endif

@@ -1,3 +1,6 @@
+`ifndef MEM_MGMT_UNIT_V
+`define MEM_MGMT_UNIT_V
+
 `include "config.v"
 
 /**
@@ -48,14 +51,17 @@ module mem_mgmt_unit (
   parameter[2:0] READ_ICACHE = 2;
   parameter[2:0] WRITE_DCACHE = 3;
 
-  initial begin
-    state = STATE_0; // initialize it as idle
-    mode = DEFAULT;
-    ready_to_dcache = 0;
-    ready_to_icache = 0;
-  end
-
   always @(posedge clk) begin
+    // just for reset
+    if (rst) begin
+      state = STATE_0; // initialize it as idle
+      vice_state = STATE_0;
+      mode = DEFAULT;
+      vice_mode = DEFAULT;
+      ready_to_dcache = 0;
+      ready_to_icache = 0;
+    end
+
     case (state)
       // initialize state machine and ask to obtain the first 8 bits
       STATE_0: begin
@@ -189,3 +195,5 @@ module mem_mgmt_unit (
     endcase
   end
 endmodule
+
+`endif
