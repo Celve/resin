@@ -9,13 +9,13 @@ module inst_fetcher(
     input wire rdy,
 
     // ports for memory management unit
-    output reg valid_to_mem_mgmt_unit,
-    output reg[`ADDR_TYPE] addr_to_mem_mgmt_unit,
-    input wire ready_from_mem_mgmt_unit,
-    input wire[`INST_TYPE] inst_from_mem_mgmt_unit,
+    output reg valid_to_mem_ctrler,
+    output reg[`ADDR_TYPE] addr_to_mem_ctrler,
+    input wire ready_from_mem_ctrler,
+    input wire[`INST_TYPE] inst_from_mem_ctrler,
 
     // ports for issuer
-    output reg rdy_to_issuer,
+    output reg ready_to_issuer,
     output reg[`INST_TYPE] inst_to_issuer);
 
   parameter[2:0] IDLE = 0; // instruction fetcher has nothing to do
@@ -39,10 +39,10 @@ module inst_fetcher(
   always @(posedge clk) begin
     // just for reset
     if (rst) begin
-      state = IDLE;
-      count = 0;
-      pc = 0;
-      next_pc = 4;
+      state <= IDLE;
+      count <= 0;
+      pc <= 0;
+      next_pc <= 4;
       for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
@@ -55,38 +55,39 @@ module inst_fetcher(
       IDLE: begin
         if (cache_valid_bits[index] && cache_tags[index] == tag) begin
           inst_to_issuer <= cache_lines[index];
-          rdy_to_issuer <= 1;
+          ready_to_issuer <= 1;
           pc <= next_pc;
           next_pc <= next_pc + 4; // TODO: predict pc
         end else begin
-          addr_to_mem_mgmt_unit <= pc;
-          valid_to_mem_mgmt_unit <= 1;
+          addr_to_mem_ctrler <= pc;
+          valid_to_mem_ctrler <= 1;
           state <= INTERACTING;
-          rdy_to_issuer <= 0;
+          ready_to_issuer <= 0;
         end
 
       end
 
       INTERACTING: begin
-        if (ready_from_mem_mgmt_unit) begin
+        if (ready_from_mem_ctrler) begin
           count <= 3;
 
           // maybe the next pc isn't cached
           // or else it's cached, the state has to be set to pending because it would not access memory in the next round
           if (!cache_valid_bits[next_index] || cache_tags[next_index] != next_tag) begin
-            addr_to_mem_mgmt_unit <= next_pc;
-            valid_to_mem_mgmt_unit <= 1;
+            addr_to_mem_ctrler <= next_pc;
+            valid_to_mem_ctrler <= 1;
           end else begin
             state <= PENDING;
-            valid_to_mem_mgmt_unit <= 0;
+            valid_to_mem_ctrler <= 0;
           end
         end
 
 
       end
     endcase
-  end
 
+  end
+  // wait two cycles to fetch inst from inst fetcher
   always @(posedge clk) begin
     case (count)
       3: begin
@@ -100,10 +101,10 @@ module inst_fetcher(
       // after this, it would go to IDLE or INTERACTING
       // therefore I only need to set rdy to 0 in these two states
       1: begin
-        inst_to_issuer <= inst_from_mem_mgmt_unit;
-        rdy_to_issuer <= 1;
+        inst_to_issuer <= inst_from_mem_ctrler;
+        ready_to_issuer <= 1;
         count <= 0;
-        cache_lines[index] <= inst_from_mem_mgmt_unit;
+        cache_lines[index] <= inst_from_mem_ctrler;
         cache_tags[index] <= tag;
         cache_valid_bits[index] <= 1;
 
@@ -120,13 +121,11 @@ module inst_fetcher(
 
       0: begin
         if (state == INTERACTING) begin
-          rdy_to_issuer <= 0;
+          ready_to_issuer <= 0;
         end
       end
     endcase
   end
-
-  // wait two cycles to fetch inst from inst fetcher
 endmodule
 
 `endif

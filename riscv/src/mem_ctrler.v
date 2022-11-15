@@ -1,5 +1,5 @@
-`ifndef MEM_MGMT_UNIT_V
-`define MEM_MGMT_UNIT_V
+`ifndef MEM_CTRLER_V
+`define MEM_CTRLER_V
 
 `include "config.v"
 
@@ -9,7 +9,7 @@
  * 2. When memory management unit is able to accept another address, it will set the ready bit to be true, only in next cycle.
  */
 
-module mem_mgmt_unit (
+module mem_ctrler (
     input wire clk,
     input wire rst,
     input wire rdy,
@@ -54,12 +54,12 @@ module mem_mgmt_unit (
   always @(posedge clk) begin
     // just for reset
     if (rst) begin
-      state = STATE_0; // initialize it as idle
-      vice_state = STATE_0;
-      mode = DEFAULT;
-      vice_mode = DEFAULT;
-      ready_to_dcache = 0;
-      ready_to_icache = 0;
+      state <= STATE_0; // initialize it as idle
+      vice_state <= STATE_0;
+      mode <= DEFAULT;
+      vice_mode <= DEFAULT;
+      ready_to_dcache <= 0;
+      ready_to_icache <= 0;
     end
 
     case (state)
