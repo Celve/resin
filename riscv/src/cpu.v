@@ -1,7 +1,7 @@
 
-// `include "another_mem_mgmt_unit.v"
-// `include "icache.v"
-// `include "inst_fetcher.v"
+`include "mem_ctrler.v"
+`include "inst_fetcher.v"
+`include "issuer.v"
 
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
@@ -18,65 +18,80 @@ module cpu(input wire clk_in,              // system clock signal
 
   // implementation goes here
 
-  wire[7:0] data_from_ram_to_mem_mgmt_unit;
-  wire rw_select_from_mem_mgmt_unit_to_ram;
-  wire[`ADDR_TYPE] addr_from_mem_mgmt_unit_to_ram;
-  wire[7:0] data_from_mem_mgmt_unit_to_ram;
-  wire[`ADDR_TYPE] addr_from_icache_to_mem_mgmt_unit;
-  wire valid_from_icache_to_mem_mgmt_unit;
-  wire[`DATA_TYPE] data_from_mem_mgmt_unit_to_icache;
-  wire ready_from_mem_mgmt_unit_to_icache;
-  wire[`ADDR_TYPE] addr_from_dcache_to_mem_mgmt_unit;
-  wire[`DATA_TYPE] data_from_dcache_to_mem_mgmt_unit;
-  wire valid_from_dcache_to_mem_mgmt_unit;
-  wire rw_flag_from_dcache_to_mem_mgmt_unit;
-  wire ready_from_mem_mgmt_unit_to_dcache;
-  wire[`DATA_TYPE] data_from_mem_mgmt_unit_to_dcache;
+  wire[7:0] data_from_ram_to_mem_ctrler;
+  wire rw_select_from_mem_ctrler_to_ram;
+  wire[`ADDR_TYPE] addr_from_mem_ctrler_to_ram;
+  wire[7:0] data_from_mem_ctrler_to_ram;
+  wire[`ADDR_TYPE] addr_from_icache_to_mem_ctrler;
+  wire valid_from_icache_to_mem_ctrler;
+  wire[`DATA_TYPE] data_from_mem_ctrler_to_icache;
+  wire ready_from_mem_ctrler_to_icache;
+  wire[`ADDR_TYPE] addr_from_dcache_to_mem_ctrler;
+  wire[`DATA_TYPE] data_from_dcache_to_mem_ctrler;
+  wire valid_from_dcache_to_mem_ctrler;
+  wire rw_flag_from_dcache_to_mem_ctrler;
+  wire ready_from_mem_ctrler_to_dcache;
+  wire[`DATA_TYPE] data_from_mem_ctrler_to_dcache;
 
   wire valid_from_inst_fetcher_to_icache;
   wire[`ADDR_TYPE] addr_from_inst_fetcher_to_icache;
   wire ready_from_icache_to_inst_fetcher;
   wire[`DATA_TYPE] data_from_icache_to_inst_fetcher;
 
+  wire ready_from_inst_fetcher_to_issuer;
   wire[`INST_TYPE] inst_from_inst_fetcher_to_issuer;
 
-  assign data_from_ram_to_mem_mgmt_unit = mem_din;
-  assign mem_dout = data_from_mem_mgmt_unit_to_ram;
-  assign mem_a = addr_from_mem_mgmt_unit_to_ram;
-  assign mem_wr = rw_select_from_mem_mgmt_unit_to_ram;
+  reg stall;
 
+  assign data_from_ram_to_mem_ctrler = mem_din;
+  assign mem_dout = data_from_mem_ctrler_to_ram;
+  assign mem_a = addr_from_mem_ctrler_to_ram;
+  assign mem_wr = rw_select_from_mem_ctrler_to_ram;
 
-  mem_mgmt_unit mem_mgmt_unit_0(
-                  .clk(clk_in),
-                  .rst(rst_in),
-                  .rdy(rdy_in),
-                  .data_from_ram(data_from_ram_to_mem_mgmt_unit),
-                  .rw_select_to_ram(rw_select_from_mem_mgmt_unit_to_ram),
-                  .addr_to_ram(addr_from_mem_mgmt_unit_to_ram),
-                  .data_to_ram(data_from_mem_mgmt_unit_to_ram),
+  mem_ctrler mem_ctrler_0(
+               .clk(clk_in),
+               .rst(rst_in),
+               .rdy(rdy_in),
+               .data_from_ram(data_from_ram_to_mem_ctrler),
+               .rw_select_to_ram(rw_select_from_mem_ctrler_to_ram),
+               .addr_to_ram(addr_from_mem_ctrler_to_ram),
+               .data_to_ram(data_from_mem_ctrler_to_ram),
 
-                  .addr_from_icache(addr_from_icache_to_mem_mgmt_unit),
-                  .valid_from_icache(valid_from_icache_to_mem_mgmt_unit),
-                  .data_to_icache(data_from_mem_mgmt_unit_to_icache),
-                  .ready_to_icache(ready_from_mem_mgmt_unit_to_icache),
+               .addr_from_icache(addr_from_icache_to_mem_ctrler),
+               .valid_from_icache(valid_from_icache_to_mem_ctrler),
+               .data_to_icache(data_from_mem_ctrler_to_icache),
+               .ready_to_icache(ready_from_mem_ctrler_to_icache),
 
-                  .addr_from_dcache(addr_from_dcache_to_mem_mgmt_unit),
-                  .data_from_dcache(data_from_dcache_to_mem_mgmt_unit),
-                  .valid_from_dcache(valid_from_dcache_to_mem_mgmt_unit),
-                  .rw_flag_from_dcache(rw_flag_from_dcache_to_mem_mgmt_unit),
-                  .ready_to_dcache(ready_from_mem_mgmt_unit_to_dcache),
-                  .data_to_dcache(data_from_mem_mgmt_unit_to_dcache));
+               .addr_from_dcache(addr_from_dcache_to_mem_ctrler),
+               .data_from_dcache(data_from_dcache_to_mem_ctrler),
+               .valid_from_dcache(valid_from_dcache_to_mem_ctrler),
+               .rw_flag_from_dcache(rw_flag_from_dcache_to_mem_ctrler),
+               .ready_to_dcache(ready_from_mem_ctrler_to_dcache),
+               .data_to_dcache(data_from_mem_ctrler_to_dcache));
 
   inst_fetcher inst_fetcher_0(
                  .clk(clk_in),
                  .rst(rst_in),
                  .rdy(rdy_in),
 
-                 .valid_to_mem_mgmt_unit(valid_from_icache_to_mem_mgmt_unit),
-                 .addr_to_mem_mgmt_unit(addr_from_icache_to_mem_mgmt_unit),
-                 .ready_from_mem_mgmt_unit(ready_from_mem_mgmt_unit_to_icache),
-                 .inst_from_mem_mgmt_unit(data_from_mem_mgmt_unit_to_icache),
+                 .stall(stall),
+
+                 .valid_to_mem_ctrler(valid_from_icache_to_mem_ctrler),
+                 .addr_to_mem_ctrler(addr_from_icache_to_mem_ctrler),
+                 .ready_from_mem_ctrler(ready_from_mem_ctrler_to_icache),
+                 .inst_from_mem_ctrler(data_from_mem_ctrler_to_icache),
+
+                 .ready_to_issuer(ready_from_inst_fetcher_to_issuer),
                  .inst_to_issuer(inst_from_inst_fetcher_to_issuer));
+
+  issuer issuer_0(
+           .clk(clk_in),
+           .rst(rst_in),
+           .rdy(rdy_in),
+
+           .ready_from_inst_fetcher(ready_from_inst_fetcher_to_issuer),
+           .inst_from_inst_fetcher(inst_from_inst_fetcher_to_issuer)
+         );
 
   // Specifications:
   // - Pause cpu(freeze pc, registers, etc.) when rdy_in is low
@@ -88,7 +103,21 @@ module cpu(input wire clk_in,              // system clock signal
   // - 0x30004 read: read clocks passed since cpu starts (in dword, 4 bytes)
   // - 0x30004 write: indicates program stop (will output '\0' through uart tx)
 
+  reg[31:0] cnt;
+
+  initial begin
+    cnt = 0;
+  end
+
   always @(posedge clk_in) begin
+    if (cnt == 20) begin
+      stall <= 1;
+      cnt <= 0;
+    end else begin
+      stall <= 0;
+      cnt <= cnt + 1;
+    end
+
     if (rst_in) begin
 
     end else if (!rdy_in) begin

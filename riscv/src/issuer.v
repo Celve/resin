@@ -9,7 +9,7 @@ module issuer(
     input wire rst,
     input wire rdy,
 
-    input wire rdy_from_inst_fetcher,
+    input wire ready_from_inst_fetcher,
     input wire[`INST_TYPE] inst_from_inst_fetcher);
 
   wire[`REG_ID_TYPE] rd;
@@ -25,8 +25,8 @@ module issuer(
             .imm(imm));
 
   always @(posedge clk) begin
-    if (rdy_from_inst_fetcher) begin
-
+    if (ready_from_inst_fetcher) begin
+      // $display("rd: %d, rs1: %d, rs2: %d, imm: %h", rd, rs1, rs2, imm);
     end
   end
 

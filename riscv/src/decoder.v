@@ -67,7 +67,7 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {inst[31:20], 1'b0};
+        imm = inst[31:20];
 
         case (inst[14:12])
           3'b000: inst_type = `LB_INST;
@@ -82,7 +82,7 @@ module decoder(
         rd = 5'b00000;
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = {inst[31:25], inst[11:7], 1'b0};
+        imm = {inst[31:25], inst[11:7]};
 
         case (inst[14:12])
           3'b000: inst_type = `SB_INST;
@@ -95,7 +95,7 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {inst[31:20], 1'b0};
+        imm = inst[31:20];
 
         case(inst[14:12])
           3'b000: inst_type = `ADDI_INST;

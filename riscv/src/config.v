@@ -9,7 +9,7 @@
 
 // sizes
 `define INST_CACHE_SIZE 256
-`define ADDR_WIDTH 32
+`define ADDR_WIDTH 16
 `define CACHE_INDEX_WIDTH 8
 `define CACHE_LINE_WIDTH 2
 
