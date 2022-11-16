@@ -24,14 +24,14 @@ module cpu(input wire clk_in,              // system clock signal
   wire[7:0] data_from_mem_ctrler_to_ram;
   wire[`ADDR_TYPE] addr_from_icache_to_mem_ctrler;
   wire valid_from_icache_to_mem_ctrler;
-  wire[`DATA_TYPE] data_from_mem_ctrler_to_icache;
+  wire[`CACHE_LINE_TYPE] data_from_mem_ctrler_to_icache;
   wire ready_from_mem_ctrler_to_icache;
   wire[`ADDR_TYPE] addr_from_dcache_to_mem_ctrler;
-  wire[`DATA_TYPE] data_from_dcache_to_mem_ctrler;
+  wire[`CACHE_LINE_TYPE] data_from_dcache_to_mem_ctrler;
   wire valid_from_dcache_to_mem_ctrler;
   wire rw_flag_from_dcache_to_mem_ctrler;
   wire ready_from_mem_ctrler_to_dcache;
-  wire[`DATA_TYPE] data_from_mem_ctrler_to_dcache;
+  wire[`CACHE_LINE_TYPE] data_from_mem_ctrler_to_dcache;
 
   wire valid_from_inst_fetcher_to_icache;
   wire[`ADDR_TYPE] addr_from_inst_fetcher_to_icache;
@@ -79,7 +79,7 @@ module cpu(input wire clk_in,              // system clock signal
                  .valid_to_mem_ctrler(valid_from_icache_to_mem_ctrler),
                  .addr_to_mem_ctrler(addr_from_icache_to_mem_ctrler),
                  .ready_from_mem_ctrler(ready_from_mem_ctrler_to_icache),
-                 .inst_from_mem_ctrler(data_from_mem_ctrler_to_icache),
+                 .cache_line_from_mem_ctrler(data_from_mem_ctrler_to_icache),
 
                  .ready_to_issuer(ready_from_inst_fetcher_to_issuer),
                  .inst_to_issuer(inst_from_inst_fetcher_to_issuer));
