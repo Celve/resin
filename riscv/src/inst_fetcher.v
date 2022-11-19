@@ -20,7 +20,12 @@ module inst_fetcher(
     output wire ready_to_issuer,
     output wire[`REG_TYPE] pc_to_issuer,
     output wire[`REG_TYPE] next_pc_to_issuer,
-    output wire[`INST_TYPE] inst_to_issuer);
+    output wire[`INST_TYPE] inst_to_issuer,
+
+    // ports for rob bus
+    input wire reset_from_rob_bus,
+    input wire[`REG_TYPE] pc_from_rob_bus
+  );
 
   parameter[2:0] IDLE = 0; // instruction fetcher has nothing to do
   parameter[2:0] INTERACTING = 1; // instruction fetcher is interacting with memory management unit
@@ -45,7 +50,7 @@ module inst_fetcher(
   assign inst_to_issuer = hit ? {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]} : 0;
 
   always @(posedge clk) begin
-    if (hit && !is_any_full) begin
+    if (!rst && !reset_from_rob_bus && hit && !is_any_full) begin
       pc <= next_pc;
       next_pc <= next_pc + 4;
     end
@@ -60,11 +65,19 @@ module inst_fetcher(
         cache_tags[i] <= 0;
         cache_lines[i] <= 0;
       end
+
+      valid_to_mem_ctrler <= 0;
+      addr_to_mem_ctrler <= 0;
     end else begin
+      if (reset_from_rob_bus) begin
+        pc <= pc_from_rob_bus;
+        next_pc <= pc_from_rob_bus + 4; // lack of prediction
+      end
+
       case (state)
         // when it's idle, look at the icache first
         IDLE: begin
-          if (!hit) begin
+          if (!hit && !reset_from_rob_bus) begin
             addr_to_mem_ctrler <= pc;
             valid_to_mem_ctrler <= 1;
             state <= INTERACTING;
@@ -76,6 +89,7 @@ module inst_fetcher(
             cache_lines[index] <= cache_line_from_mem_ctrler;
             cache_tags[index] <= tag;
             cache_valid_bits[index] <= 1;
+            valid_to_mem_ctrler <= 0;
             state <= IDLE;
           end
         end

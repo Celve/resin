@@ -45,6 +45,7 @@ module decoder(
         rs2 = 5'b00000;
         imm = {12'b0, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
         op = `JAL_INST;
+        is_branch = 1;
       end
 
       7'b1100111: begin // JALR

@@ -8,6 +8,7 @@
 `include "reg_file.v"
 `include "lsb_bus.v"
 `include "rss_bus.v"
+`include "rob_bus.v"
 
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
@@ -83,6 +84,9 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`REG_TYPE] pc_from_inst_fetcher_to_issuer;
   wire[`REG_TYPE] next_pc_from_inst_fetcher_to_issuer;
 
+  wire reset_from_rob_bus_to_inst_fetcher;
+  wire[`REG_TYPE] pc_from_rob_bus_to_inst_fetcher;
+
   inst_fetcher inst_fetcher_0(
                  .clk(clk_in),
                  .rst(rst_in),
@@ -98,7 +102,11 @@ module cpu(input wire clk_in,              // system clock signal
                  .ready_to_issuer(ready_from_inst_fetcher_to_issuer),
                  .pc_to_issuer(pc_from_inst_fetcher_to_issuer),
                  .next_pc_to_issuer(next_pc_from_inst_fetcher_to_issuer),
-                 .inst_to_issuer(inst_from_inst_fetcher_to_issuer));
+                 .inst_to_issuer(inst_from_inst_fetcher_to_issuer),
+
+                 .reset_from_rob_bus(reset_from_rob_bus_to_inst_fetcher),
+                 .pc_from_rob_bus(pc_from_rob_bus_to_inst_fetcher)
+               );
 
   wire[`REG_ID_TYPE] rs_from_issuer_to_reg_file;
   wire[`REG_TYPE] vj_from_reg_file_to_issuer;
@@ -156,12 +164,11 @@ module cpu(input wire clk_in,              // system clock signal
 
   wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus_to_ro_buffer;
   wire[`REG_TYPE] value_from_rss_bus_to_ro_buffer;
-  wire[`REG_TYPE] pc_from_rss_bus_to_ro_buffer;
+  wire[`REG_TYPE] next_pc_from_rss_bus_to_ro_buffer;
 
   // lsb bus
   wire[`RO_BUFFER_ID_TYPE] dest_from_ls_buffer_to_lsb_bus;
   wire[`REG_TYPE] value_from_ls_buffer_to_lsb_bus;
-  wire[`REG_TYPE] pc_from_ls_buffer_to_lsb_bus;
 
   wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_issuer;
   wire[`REG_TYPE] value_from_lsb_bus_to_issuer;
@@ -174,6 +181,28 @@ module cpu(input wire clk_in,              // system clock signal
 
   wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_ro_buffer;
   wire[`REG_TYPE] value_from_lsb_bus_to_ro_buffer;
+
+  // rob bus
+  wire reset_from_ro_buffer_to_rob_bus;
+  wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
+
+  wire reset_from_rob_bus_to_issuer;
+  wire reset_from_rob_bus_to_rs_station;
+  wire reset_from_rob_bus_to_ls_buffer;
+  wire reset_from_rob_bus_to_ro_buffer;
+  wire reset_from_rob_bus_to_reg_file;
+
+  rob_bus rob_bus_0(
+            .reset_from_ro_buffer(reset_from_ro_buffer_to_rob_bus),
+            .pc_from_ro_buffer(pc_from_ro_buffer_to_rob_bus),
+            .reset_to_inst_fetcher(reset_from_rob_bus_to_inst_fetcher),
+            .pc_to_inst_fetcher(pc_from_rob_bus_to_inst_fetcher),
+
+            .reset_to_issuer(reset_from_rob_bus_to_issuer),
+            .reset_to_rs_station(reset_from_rob_bus_to_rs_station),
+            .reset_to_ls_buffer(reset_from_rob_bus_to_ls_buffer),
+            .reset_to_ro_buffer(reset_from_rob_bus_to_ro_buffer),
+            .reset_to_reg_file(reset_from_rob_bus_to_reg_file));
 
   lsb_bus lsb_bus_0(
             .dest_from_ls_buffer(dest_from_ls_buffer_to_lsb_bus),
@@ -195,7 +224,7 @@ module cpu(input wire clk_in,              // system clock signal
   rss_bus rss_bus_0(
             .dest_from_rs_station(dest_from_rs_station_to_rss_bus),
             .value_from_rs_station(value_from_rs_station_to_rss_bus),
-            .pc_from_rs_station(next_pc_from_rs_station_to_rss_bus),
+            .next_pc_from_rs_station(next_pc_from_rs_station_to_rss_bus),
 
             .dest_to_issuer(dest_from_rss_bus_to_issuer),
             .value_to_issuer(value_from_rss_bus_to_issuer),
@@ -208,8 +237,12 @@ module cpu(input wire clk_in,              // system clock signal
 
             .dest_to_ro_buffer(dest_from_rss_bus_to_ro_buffer),
             .value_to_ro_buffer(value_from_rss_bus_to_ro_buffer),
-            .pc_to_ro_buffer(pc_from_rss_bus_to_ro_buffer)
+            .next_pc_to_ro_buffer(next_pc_from_rss_bus_to_ro_buffer)
           );
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer_to_reg_file;
+  wire[`REG_ID_TYPE] rd_from_ro_buffer_to_reg_file;
+  wire[`REG_TYPE] value_from_ro_buffer_to_reg_file;
 
   reg_file reg_file_0(
              .clk(clk_in),
@@ -224,8 +257,13 @@ module cpu(input wire clk_in,              // system clock signal
              .qk_to_issuer(qk_from_reg_file_to_issuer),
 
              .rd_from_issuer(rd_from_issuer_to_reg_file),
-             .dest_from_issuer(dest_from_issuer_to_reg_file)
-           );
+             .dest_from_issuer(dest_from_issuer_to_reg_file),
+
+             .dest_from_ro_buffer(dest_from_ro_buffer_to_reg_file),
+             .rd_from_ro_buffer(rd_from_ro_buffer_to_reg_file),
+             .value_from_ro_buffer(value_from_ro_buffer_to_reg_file),
+
+             .reset_from_rob_bus(reset_from_rob_bus_to_reg_file));
 
   issuer issuer_0(
            .clk(clk_in),
@@ -286,7 +324,9 @@ module cpu(input wire clk_in,              // system clock signal
            .vk_to_ls_buffer(vk_from_issuer_to_ls_buffer),
 
            .dest_from_lsb_bus(dest_from_lsb_bus_to_issuer),
-           .value_from_lsb_bus(value_from_lsb_bus_to_issuer)
+           .value_from_lsb_bus(value_from_lsb_bus_to_issuer),
+
+           .reset_from_rob_bus(reset_from_rob_bus_to_issuer)
          );
 
   rs_station rs_station_0(
@@ -314,6 +354,8 @@ module cpu(input wire clk_in,              // system clock signal
                .value_to_rss_bus(value_from_rs_station_to_rss_bus),
                .next_pc_to_rss_bus(next_pc_from_rs_station_to_rss_bus),
 
+               .reset_from_rob_bus(reset_from_rob_bus_to_rs_station),
+
                .is_rs_station_full(is_rs_station_full));
 
   ls_buffer ls_buffer_0(
@@ -328,15 +370,22 @@ module cpu(input wire clk_in,              // system clock signal
               .vj_from_issuer(vj_from_issuer_to_ls_buffer),
               .vk_from_issuer(vk_from_issuer_to_ls_buffer),
 
-              .dest_from_lsb_bus(dest_from_lsb_bus_to_rs_station),
-              .value_from_lsb_bus(value_from_lsb_bus_to_rs_station),
+              .dest_from_lsb_bus(dest_from_lsb_bus_to_ls_buffer),
+              .value_from_lsb_bus(value_from_lsb_bus_to_ls_buffer),
 
-              .dest_from_rss_bus(dest_from_rss_bus_to_rs_station),
-              .value_from_rss_bus(value_from_rss_bus_to_rs_station),
+              .dest_from_rss_bus(dest_from_rss_bus_to_ls_buffer),
+              .value_from_rss_bus(value_from_rss_bus_to_ls_buffer),
 
-              .dest_to_lsb_bus(dest_from_rs_station_to_rss_bus),
-              .value_to_lsb_bus(value_from_rs_station_to_rss_bus),
-              .pc_to_lsb_bus(next_pc_from_rs_station_to_rss_bus),
+              .reset_from_rob_bus(reset_from_rob_bus_to_ls_buffer),
+
+              .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
+              .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
+              .addr_to_mem_ctrler(addr_from_dcache_to_mem_ctrler),
+              .ready_from_mem_ctrler(ready_from_mem_ctrler_to_dcache),
+              .cache_line_from_mem_ctrler(data_from_dcache_to_mem_ctrler),
+
+              .dest_to_lsb_bus(dest_from_ls_buffer_to_lsb_bus),
+              .value_to_lsb_bus(value_from_ls_buffer_to_lsb_bus),
 
               .is_ls_buffer_full(is_ls_buffer_full));
 
@@ -345,11 +394,12 @@ module cpu(input wire clk_in,              // system clock signal
               .rst(rst_in),
               .rdy(rdy_in),
 
+              .is_ro_buffer_full(is_ro_buffer_full),
+
               .valid_from_issuer(valid_from_issuer_to_ro_buffer),
               .signal_from_issuer(signal_from_issuer_to_ro_buffer),
               .rd_from_issuer(rd_from_issuer_to_ro_buffer),
               .next_pc_from_issuer(next_pc_from_issuer_to_ro_buffer),
-
               .dest_to_issuer(dest_from_ro_buffer_to_issuer),
 
               .qj_from_issuer(qj_from_issuer_to_ro_buffer),
@@ -360,7 +410,20 @@ module cpu(input wire clk_in,              // system clock signal
               .valid_of_vk_to_issuer(valid_of_vk_from_ro_buffer_to_issuer),
               .vk_to_issuer(vk_from_ro_buffer_to_issuer),
 
-              .is_ro_buffer_full(is_ro_buffer_full));
+              .reset_to_rob_bus(reset_from_ro_buffer_to_rob_bus),
+              .pc_to_rob_bus(pc_from_ro_buffer_to_rob_bus),
+              .reset_from_rob_bus(reset_from_rob_bus_to_ro_buffer),
+
+              .dest_from_lsb_bus(dest_from_lsb_bus_to_ro_buffer),
+              .value_from_lsb_bus(value_from_lsb_bus_to_ro_buffer),
+
+              .dest_from_rss_bus(dest_from_rss_bus_to_ro_buffer),
+              .value_from_rss_bus(value_from_rss_bus_to_ro_buffer),
+              .next_pc_from_rss_bus(next_pc_from_rss_bus_to_ro_buffer),
+
+              .dest_to_reg_file(dest_from_ro_buffer_to_reg_file),
+              .rd_to_reg_file(rd_from_ro_buffer_to_reg_file),
+              .value_to_reg_file(value_from_ro_buffer_to_reg_file));
 
   // Specifications:
   // - Pause cpu(freeze pc, registers, etc.) when rdy_in is low

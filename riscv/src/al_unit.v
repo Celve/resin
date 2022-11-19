@@ -30,6 +30,8 @@ module al_unit(
     // I don't know how to deal with branch yet
     // therefore branch inst would not appear in here
     valid = 0;
+    value = 0;
+    next_pc = 0;
     case(op)
       `LUI_INST: value = imm << 12;
       `AUIPC_INST: value = pc + (imm << 12);

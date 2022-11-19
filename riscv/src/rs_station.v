@@ -32,6 +32,9 @@ module rs_station(
     output reg[`REG_TYPE] value_to_rss_bus,
     output reg[`REG_TYPE] next_pc_to_rss_bus,
 
+    // for rob bus
+    input reset_from_rob_bus,
+
     // for inst_fetcher and others
     output wire is_rs_station_full);
 
@@ -46,7 +49,7 @@ module rs_station(
   reg[`REG_TYPE] a[`RESERVATION_STATION_TYPE]; // in this case, it's used to store pc
   reg[`REG_TYPE] imm[`RESERVATION_STATION_TYPE]; // temporary supplement
   reg busy[`RESERVATION_STATION_TYPE];
-  reg[`RO_BUFFER_TYPE] dest[`RESERVATION_STATION_TYPE];
+  reg[`RO_BUFFER_ID_TYPE] dest[`RESERVATION_STATION_TYPE];
   reg[2:0] state;
 
   // for alu
@@ -60,6 +63,8 @@ module rs_station(
   wire[`REG_TYPE] value_from_al_unit;
   wire[`REG_TYPE] next_pc_from_al_unit;
   reg[`RES_STATION_ID_TYPE] last_exec_index;
+
+  wire is_any_reset = rst || reset_from_rob_bus;
 
   al_unit al_unit_0(
             .clk(clk),
@@ -120,8 +125,8 @@ module rs_station(
       0;
 
   always @(posedge clk) begin
-    if (rst) begin
-      state = 0;
+    if (is_any_reset) begin
+      state <= 0;
       for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
         op[i] <= 0;
         qj[i] <= 0;
@@ -131,11 +136,15 @@ module rs_station(
         dest[i] <= 0;
         busy[i] <= 0;
       end
+
+      dest_to_rss_bus <= 0;
+      value_to_rss_bus <= 0;
+      next_pc_to_rss_bus <= 0;
     end
   end
 
   always @(posedge clk) begin
-    if (!rst) begin
+    if (!is_any_reset) begin
       if (dest_from_lsb_bus) begin
         for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
@@ -147,7 +156,8 @@ module rs_station(
             vk[i] <= value_from_lsb_bus;
           end
         end
-      end else if (dest_from_rss_bus) begin
+      end
+      if (dest_from_rss_bus) begin
         for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
           if (qj[i] == dest_from_rss_bus) begin
             qj[i] <= 0;
@@ -163,7 +173,7 @@ module rs_station(
   end
 
   always @(posedge clk) begin
-    if (!rst) begin
+    if (!is_any_reset) begin
       if (state == IDLE && exec_index) begin
         state <= WAITING;
         op_to_al_unit <= op[exec_index];
@@ -172,6 +182,10 @@ module rs_station(
         pc_to_al_unit <= a[exec_index];
         imm_to_al_unit <= imm[exec_index];
         last_exec_index <= exec_index;
+
+        dest_to_rss_bus <= 0;
+        value_to_rss_bus <= 0;
+        next_pc_to_rss_bus <= 0;
       end else if (state == WAITING && valid_from_al_unit) begin
         dest[last_exec_index] <= 0;
         busy[last_exec_index] <= 0;
@@ -187,7 +201,7 @@ module rs_station(
 
   always @(posedge clk) begin
     // add new entry to a empty slot
-    if (!rst) begin
+    if (!is_any_reset) begin
       if (dest_from_issuer) begin
         op[free_index] <= op_from_issuer;
         qj[free_index] <= qj_from_issuer;

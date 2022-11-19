@@ -20,14 +20,25 @@ module reg_file(
 
     // for issuer's rd
     input wire[`REG_ID_TYPE] rd_from_issuer,
-    input wire[`RO_BUFFER_ID_TYPE] dest_from_issuer);
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_issuer,
+
+    // for ro buffer
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer,
+    input wire[`REG_ID_TYPE] rd_from_ro_buffer,
+    input wire[`REG_TYPE] value_from_ro_buffer,
+
+    // for rob bus
+    input wire reset_from_rob_bus
+  );
 
 
   reg[`REG_TYPE] values[`REG_NUM_TYPE];
   reg[`REG_ID_TYPE] status[`REG_NUM_TYPE];
 
+  wire is_any_reset = rst || reset_from_rob_bus;
+
   always @(posedge clk) begin
-    if (rst) begin
+    if (is_any_reset) begin
       for (integer i = 0; i < `REG_NUM; i = i + 1) begin
         values[i] <= 0;
         status[i] <= 0;
@@ -36,13 +47,23 @@ module reg_file(
   end
 
   always @(posedge clk) begin
-    if (!rst) begin
+    if (!is_any_reset) begin
       if (rd_from_issuer) begin
         status[rd_from_issuer] <= dest_from_issuer;
       end
     end
   end
 
+  always @(posedge clk) begin
+    if (!is_any_reset) begin
+      if (dest_from_ro_buffer) begin
+        if (dest_from_ro_buffer == status[rd_from_ro_buffer]) begin
+          status[rd_from_ro_buffer] <= 0;
+        end
+        values[rd_from_ro_buffer] <= value_from_ro_buffer;
+      end
+    end
+  end
 
   assign qj_to_issuer = status[rs_from_issuer];
   assign vj_to_issuer = status[rs_from_issuer] ? 0 : values[rs_from_issuer];

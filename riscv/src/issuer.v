@@ -45,6 +45,9 @@ module issuer(
     output reg[`REG_ID_TYPE] rd_to_ro_buffer, // for normal instruction only
     output reg[`REG_TYPE] next_pc_to_ro_buffer, // for branch only
 
+    // for reorder buffer
+    input wire reset_from_rob_bus,
+
     // for res station, only in the next cycle can res station receives these
     // considering obtain them in just one cycle
     output reg[`RO_BUFFER_ID_TYPE] dest_to_rs_station,
@@ -55,7 +58,6 @@ module issuer(
     output reg[`REG_TYPE] vk_to_rs_station,
     output reg[`IMM_TYPE] imm_to_rs_station,
     output reg[`REG_TYPE] pc_to_rs_station,
-
 
     input wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus,
     input wire[`REG_TYPE] value_from_rss_bus,
@@ -100,7 +102,7 @@ module issuer(
   assign qk_to_ro_buffer = qk_from_reg_file;
 
   always @(posedge clk) begin
-    if (ready_from_inst_fetcher && !is_any_full) begin
+    if (!rst && !reset_from_rob_bus && ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE
                           : is_branch ? `ISSUER_TO_ROB_SIGNAL_BRANCH : `ISSUER_TO_ROB_SIGNAL_NORMAL;
