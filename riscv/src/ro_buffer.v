@@ -61,7 +61,8 @@ module ro_buffer(
   wire is_any_reset = rst || reset_from_rob_bus;
 
   assign is_ro_buffer_full = size == `RO_BUFFER_SIZE;
-  assign dest_to_issuer = tail;
+  wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE_MINUS_1 ? 1 : tail + 1;
+  assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
 
   always @(posedge clk) begin
     if (is_any_reset) begin
@@ -82,7 +83,7 @@ module ro_buffer(
   always @(posedge clk) begin
     if (!is_any_reset) begin
       if (valid_from_issuer) begin
-        tail <= tail == `RO_BUFFER_SIZE_MINUS_1 ? 1 : tail + 1;
+        tail <= next_tail;
         size <= size + 1;
         status[tail] <= 0;
         rd[tail] <= rd_from_issuer;
