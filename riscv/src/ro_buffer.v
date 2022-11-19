@@ -85,6 +85,7 @@ module ro_buffer(
       if (valid_from_issuer) begin
         tail <= next_tail;
         size <= size + 1;
+        signal[tail] <= signal_from_issuer;
         status[tail] <= 0;
         rd[tail] <= rd_from_issuer;
         supposed_next_pc[tail] <= next_pc_from_issuer;
@@ -114,7 +115,6 @@ module ro_buffer(
         if (signal[head] == `ISSUER_TO_ROB_SIGNAL_BRANCH) begin
           dest_to_reg_file <= 0;
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
-          end else begin
             reset_to_rob_bus <= 1;
             pc_to_rob_bus <= correct_next_pc[head];
           end
