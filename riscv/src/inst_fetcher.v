@@ -86,10 +86,12 @@ module inst_fetcher(
 
         INTERACTING: begin
           if (ready_from_mem_ctrler) begin
-            cache_lines[index] <= cache_line_from_mem_ctrler;
-            cache_tags[index] <= tag;
-            cache_valid_bits[index] <= 1;
-            valid_to_mem_ctrler <= 0;
+            if (pc == addr_to_mem_ctrler) begin
+              cache_lines[index] <= cache_line_from_mem_ctrler;
+              cache_tags[index] <= tag;
+              cache_valid_bits[index] <= 1;
+              valid_to_mem_ctrler <= 0;
+            end
             state <= IDLE;
           end
         end
