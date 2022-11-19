@@ -2,6 +2,12 @@
 `include "mem_ctrler.v"
 `include "inst_fetcher.v"
 `include "issuer.v"
+`include "rs_station.v"
+`include "ls_buffer.v"
+`include "ro_buffer.v"
+`include "reg_file.v"
+`include "lsb_bus.v"
+`include "rss_bus.v"
 
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
@@ -13,11 +19,12 @@ module cpu(input wire clk_in,              // system clock signal
              output wire[7:0] mem_dout,      // data output bus
              output wire[31:0] mem_a,        // address bus (only 17:0 is used)
              output wire mem_wr,             // write/read signal (1 for write)
-             input wire io_buffer_full,      // 1 if uart buffer is full
+             input wire is_io_buffer_full,      // 1 if uart buffer is full
              output wire[31:0] dbgreg_dout); // cpu register output (debugging demo)
 
   // implementation goes here
 
+  // mem ctrler related
   wire[7:0] data_from_ram_to_mem_ctrler;
   wire rw_select_from_mem_ctrler_to_ram;
   wire[`ADDR_TYPE] addr_from_mem_ctrler_to_ram;
@@ -33,16 +40,13 @@ module cpu(input wire clk_in,              // system clock signal
   wire ready_from_mem_ctrler_to_dcache;
   wire[`CACHE_LINE_TYPE] data_from_mem_ctrler_to_dcache;
 
-  wire valid_from_inst_fetcher_to_icache;
-  wire[`ADDR_TYPE] addr_from_inst_fetcher_to_icache;
-  wire ready_from_icache_to_inst_fetcher;
-  wire[`DATA_TYPE] data_from_icache_to_inst_fetcher;
+  // full related
+  wire is_ls_buffer_full;
+  wire is_rs_station_full;
+  wire is_ro_buffer_full;
+  wire is_any_full = is_ls_buffer_full | is_rs_station_full | is_ro_buffer_full;
 
-  wire ready_from_inst_fetcher_to_issuer;
-  wire[`INST_TYPE] inst_from_inst_fetcher_to_issuer;
-
-  reg stall;
-
+  // connection between ram and mem ctrler
   assign data_from_ram_to_mem_ctrler = mem_din;
   assign mem_dout = data_from_mem_ctrler_to_ram;
   assign mem_a = addr_from_mem_ctrler_to_ram;
@@ -69,12 +73,22 @@ module cpu(input wire clk_in,              // system clock signal
                .ready_to_dcache(ready_from_mem_ctrler_to_dcache),
                .data_to_dcache(data_from_mem_ctrler_to_dcache));
 
+  // inst fetcher related
+  wire valid_from_inst_fetcher_to_icache;
+  wire[`ADDR_TYPE] addr_from_inst_fetcher_to_icache;
+  wire ready_from_icache_to_inst_fetcher;
+  wire[`REG_TYPE] data_from_icache_to_inst_fetcher;
+  wire ready_from_inst_fetcher_to_issuer;
+  wire[`INST_TYPE] inst_from_inst_fetcher_to_issuer;
+  wire[`REG_TYPE] pc_from_inst_fetcher_to_issuer;
+  wire[`REG_TYPE] next_pc_from_inst_fetcher_to_issuer;
+
   inst_fetcher inst_fetcher_0(
                  .clk(clk_in),
                  .rst(rst_in),
                  .rdy(rdy_in),
 
-                 .stall(stall),
+                 .is_any_full(is_any_full),
 
                  .valid_to_mem_ctrler(valid_from_icache_to_mem_ctrler),
                  .addr_to_mem_ctrler(addr_from_icache_to_mem_ctrler),
@@ -82,16 +96,271 @@ module cpu(input wire clk_in,              // system clock signal
                  .cache_line_from_mem_ctrler(data_from_mem_ctrler_to_icache),
 
                  .ready_to_issuer(ready_from_inst_fetcher_to_issuer),
+                 .pc_to_issuer(pc_from_inst_fetcher_to_issuer),
+                 .next_pc_to_issuer(next_pc_from_inst_fetcher_to_issuer),
                  .inst_to_issuer(inst_from_inst_fetcher_to_issuer));
+
+  wire[`REG_ID_TYPE] rs_from_issuer_to_reg_file;
+  wire[`REG_TYPE] vj_from_reg_file_to_issuer;
+  wire[`RO_BUFFER_ID_TYPE] qj_from_reg_file_to_issuer;
+  wire[`REG_ID_TYPE] rt_from_issuer_to_reg_file;
+  wire[`REG_TYPE] vk_from_reg_file_to_issuer;
+  wire[`RO_BUFFER_ID_TYPE] qk_from_reg_file_to_issuer;
+
+  wire[`REG_ID_TYPE] rd_from_issuer_to_reg_file;
+  wire[`RO_BUFFER_ID_TYPE] dest_from_issuer_to_reg_file;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_issuer_to_rs_station;
+  wire[`OP_TYPE] op_from_issuer_to_rs_station;
+  wire[`RO_BUFFER_ID_TYPE] qj_from_issuer_to_rs_station;
+  wire[`RO_BUFFER_ID_TYPE] qk_from_issuer_to_rs_station;
+  wire[`REG_TYPE] vj_from_issuer_to_rs_station;
+  wire[`REG_TYPE] vk_from_issuer_to_rs_station;
+  wire[`IMM_TYPE] imm_from_issuer_to_rs_station;
+  wire[`REG_TYPE] pc_from_issuer_to_rs_station;
+
+
+  wire[`RO_BUFFER_ID_TYPE] qj_from_issuer_to_ro_buffer;
+  wire[`RO_BUFFER_ID_TYPE] qk_from_issuer_to_ro_buffer;
+  wire valid_of_vj_from_ro_buffer_to_issuer;
+  wire[`REG_TYPE] vj_from_ro_buffer_to_issuer;
+  wire valid_of_vk_from_ro_buffer_to_issuer;
+  wire[`REG_TYPE] vk_from_ro_buffer_to_issuer;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer_to_issuer;
+  wire valid_from_issuer_to_ro_buffer;
+  wire[`ISSUER_TO_ROB_SIGNAL_TYPE] signal_from_issuer_to_ro_buffer;
+  wire[`REG_ID_TYPE] rd_from_issuer_to_ro_buffer; // for normal instruction only
+  wire[`REG_TYPE] next_pc_from_issuer_to_ro_buffer; // for branch only
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_issuer_to_ls_buffer;
+  wire[`OP_TYPE] op_from_issuer_to_ls_buffer;
+  wire[`RO_BUFFER_ID_TYPE] qj_from_issuer_to_ls_buffer;
+  wire[`RO_BUFFER_ID_TYPE] qk_from_issuer_to_ls_buffer;
+  wire[`REG_TYPE] vj_from_issuer_to_ls_buffer;
+  wire[`REG_TYPE] vk_from_issuer_to_ls_buffer;
+
+  // rss bus
+  wire[`RO_BUFFER_ID_TYPE] dest_from_rs_station_to_rss_bus;
+  wire[`REG_TYPE] value_from_rs_station_to_rss_bus;
+  wire[`REG_TYPE] next_pc_from_rs_station_to_rss_bus;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus_to_issuer;
+  wire[`REG_TYPE] value_from_rss_bus_to_issuer;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus_to_rs_station;
+  wire[`REG_TYPE] value_from_rss_bus_to_rs_station;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus_to_ls_buffer;
+  wire[`REG_TYPE] value_from_rss_bus_to_ls_buffer;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus_to_ro_buffer;
+  wire[`REG_TYPE] value_from_rss_bus_to_ro_buffer;
+  wire[`REG_TYPE] pc_from_rss_bus_to_ro_buffer;
+
+  // lsb bus
+  wire[`RO_BUFFER_ID_TYPE] dest_from_ls_buffer_to_lsb_bus;
+  wire[`REG_TYPE] value_from_ls_buffer_to_lsb_bus;
+  wire[`REG_TYPE] pc_from_ls_buffer_to_lsb_bus;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_issuer;
+  wire[`REG_TYPE] value_from_lsb_bus_to_issuer;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_rs_station;
+  wire[`REG_TYPE] value_from_lsb_bus_to_rs_station;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_ls_buffer;
+  wire[`REG_TYPE] value_from_lsb_bus_to_ls_buffer;
+
+  wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus_to_ro_buffer;
+  wire[`REG_TYPE] value_from_lsb_bus_to_ro_buffer;
+
+  lsb_bus lsb_bus_0(
+            .dest_from_ls_buffer(dest_from_ls_buffer_to_lsb_bus),
+            .value_from_ls_buffer(value_from_ls_buffer_to_lsb_bus),
+
+            .dest_to_issuer(dest_from_lsb_bus_to_issuer),
+            .value_to_issuer(value_from_lsb_bus_to_issuer),
+
+            .dest_to_rs_station(dest_from_lsb_bus_to_rs_station),
+            .value_to_rs_station(value_from_lsb_bus_to_rs_station),
+
+            .dest_to_ls_buffer(dest_from_lsb_bus_to_ls_buffer),
+            .value_to_ls_buffer(value_from_lsb_bus_to_ls_buffer),
+
+            .dest_to_ro_buffer(dest_from_lsb_bus_to_ro_buffer),
+            .value_to_ro_buffer(value_from_lsb_bus_to_ro_buffer)
+          );
+
+  rss_bus rss_bus_0(
+            .dest_from_rs_station(dest_from_rs_station_to_rss_bus),
+            .value_from_rs_station(value_from_rs_station_to_rss_bus),
+            .pc_from_rs_station(next_pc_from_rs_station_to_rss_bus),
+
+            .dest_to_issuer(dest_from_rss_bus_to_issuer),
+            .value_to_issuer(value_from_rss_bus_to_issuer),
+
+            .dest_to_rs_station(dest_from_rss_bus_to_rs_station),
+            .value_to_rs_station(value_from_rss_bus_to_rs_station),
+
+            .dest_to_ls_buffer(dest_from_rss_bus_to_ls_buffer),
+            .value_to_ls_buffer(value_from_rss_bus_to_ls_buffer),
+
+            .dest_to_ro_buffer(dest_from_rss_bus_to_ro_buffer),
+            .value_to_ro_buffer(value_from_rss_bus_to_ro_buffer),
+            .pc_to_ro_buffer(pc_from_rss_bus_to_ro_buffer)
+          );
+
+  reg_file reg_file_0(
+             .clk(clk_in),
+             .rst(rst_in),
+             .rdy(rdy_in),
+
+             .rs_from_issuer(rs_from_issuer_to_reg_file),
+             .vj_to_issuer(vj_from_reg_file_to_issuer),
+             .qj_to_issuer(qj_from_reg_file_to_issuer),
+             .rt_from_issuer(rt_from_issuer_to_reg_file),
+             .vk_to_issuer(vk_from_reg_file_to_issuer),
+             .qk_to_issuer(qk_from_reg_file_to_issuer),
+
+             .rd_from_issuer(rd_from_issuer_to_reg_file),
+             .dest_from_issuer(dest_from_issuer_to_reg_file)
+           );
 
   issuer issuer_0(
            .clk(clk_in),
            .rst(rst_in),
            .rdy(rdy_in),
 
+           .is_any_full(is_any_full),
+
            .ready_from_inst_fetcher(ready_from_inst_fetcher_to_issuer),
-           .inst_from_inst_fetcher(inst_from_inst_fetcher_to_issuer)
+           .pc_from_inst_fetcher(pc_from_inst_fetcher_to_issuer),
+           .next_pc_from_inst_fetcher(next_pc_from_inst_fetcher_to_issuer),
+           .inst_from_inst_fetcher(inst_from_inst_fetcher_to_issuer),
+
+           // reg file
+           .rs_to_reg_file(rs_from_issuer_to_reg_file),
+           .vj_from_reg_file(vj_from_reg_file_to_issuer),
+           .qj_from_reg_file(qj_from_reg_file_to_issuer),
+
+           .rt_to_reg_file(rt_from_issuer_to_reg_file),
+           .vk_from_reg_file(vk_from_reg_file_to_issuer),
+           .qk_from_reg_file(qk_from_reg_file_to_issuer),
+
+           .rd_to_reg_file(rd_from_issuer_to_reg_file),
+           .dest_to_reg_file(dest_from_issuer_to_reg_file),
+
+           // ro buffer
+           .qj_to_ro_buffer(qj_from_issuer_to_ro_buffer),
+           .qk_to_ro_buffer(qk_from_issuer_to_ro_buffer),
+           .valid_of_vj_from_ro_buffer(valid_of_vj_from_ro_buffer_to_issuer),
+           .vj_from_ro_buffer(vj_from_ro_buffer_to_issuer),
+           .valid_of_vk_from_ro_buffer(valid_of_vk_from_ro_buffer_to_issuer),
+           .vk_from_ro_buffer(vk_from_ro_buffer_to_issuer),
+
+           .dest_from_ro_buffer(dest_from_ro_buffer_to_issuer),
+           .valid_to_ro_buffer(valid_from_issuer_to_ro_buffer),
+           .signal_to_ro_buffer(signal_from_issuer_to_ro_buffer),
+           .rd_to_ro_buffer(rd_from_issuer_to_ro_buffer),
+           .next_pc_to_ro_buffer(next_pc_from_issuer_to_ro_buffer),
+
+           // rs station
+           .dest_to_rs_station(dest_from_issuer_to_rs_station),
+           .op_to_rs_station(op_from_issuer_to_rs_station),
+           .qj_to_rs_station(qj_from_issuer_to_rs_station),
+           .qk_to_rs_station(qk_from_issuer_to_rs_station),
+           .vj_to_rs_station(vj_from_issuer_to_rs_station),
+           .vk_to_rs_station(vk_from_issuer_to_rs_station),
+           .imm_to_rs_station(imm_from_issuer_to_rs_station),
+           .pc_to_rs_station(pc_from_issuer_to_rs_station),
+
+           .dest_from_rss_bus(dest_from_rss_bus_to_issuer),
+           .value_from_rss_bus(value_from_rss_bus_to_issuer),
+
+           .dest_to_ls_buffer(dest_from_issuer_to_ls_buffer),
+           .op_to_ls_buffer(op_from_issuer_to_ls_buffer),
+           .qj_to_ls_buffer(qj_from_issuer_to_ls_buffer),
+           .qk_to_ls_buffer(qk_from_issuer_to_ls_buffer),
+           .vj_to_ls_buffer(vj_from_issuer_to_ls_buffer),
+           .vk_to_ls_buffer(vk_from_issuer_to_ls_buffer),
+
+           .dest_from_lsb_bus(dest_from_lsb_bus_to_issuer),
+           .value_from_lsb_bus(value_from_lsb_bus_to_issuer)
          );
+
+  rs_station rs_station_0(
+               .clk(clk_in),
+               .rst(rst_in),
+               .rdy(rdy_in),
+
+               // for issuer
+               .dest_from_issuer(dest_from_issuer_to_rs_station),
+               .op_from_issuer(op_from_issuer_to_rs_station),
+               .qj_from_issuer(qj_from_issuer_to_rs_station),
+               .qk_from_issuer(qk_from_issuer_to_rs_station),
+               .vj_from_issuer(vj_from_issuer_to_rs_station),
+               .vk_from_issuer(vk_from_issuer_to_rs_station),
+               .imm_from_issuer(imm_from_issuer_to_rs_station),
+               .pc_from_issuer(pc_from_issuer_to_rs_station),
+
+               .dest_from_lsb_bus(dest_from_lsb_bus_to_rs_station),
+               .value_from_lsb_bus(value_from_lsb_bus_to_rs_station),
+
+               .dest_from_rss_bus(dest_from_rss_bus_to_rs_station),
+               .value_from_rss_bus(value_from_rss_bus_to_rs_station),
+
+               .dest_to_rss_bus(dest_from_rs_station_to_rss_bus),
+               .value_to_rss_bus(value_from_rs_station_to_rss_bus),
+               .next_pc_to_rss_bus(next_pc_from_rs_station_to_rss_bus),
+
+               .is_rs_station_full(is_rs_station_full));
+
+  ls_buffer ls_buffer_0(
+              .clk(clk_in),
+              .rst(rst_in),
+              .rdy(rdy_in),
+
+              .dest_from_issuer(dest_from_issuer_to_ls_buffer),
+              .op_from_issuer(op_from_issuer_to_ls_buffer),
+              .qj_from_issuer(qj_from_issuer_to_ls_buffer),
+              .qk_from_issuer(qk_from_issuer_to_ls_buffer),
+              .vj_from_issuer(vj_from_issuer_to_ls_buffer),
+              .vk_from_issuer(vk_from_issuer_to_ls_buffer),
+
+              .dest_from_lsb_bus(dest_from_lsb_bus_to_rs_station),
+              .value_from_lsb_bus(value_from_lsb_bus_to_rs_station),
+
+              .dest_from_rss_bus(dest_from_rss_bus_to_rs_station),
+              .value_from_rss_bus(value_from_rss_bus_to_rs_station),
+
+              .dest_to_lsb_bus(dest_from_rs_station_to_rss_bus),
+              .value_to_lsb_bus(value_from_rs_station_to_rss_bus),
+              .pc_to_lsb_bus(next_pc_from_rs_station_to_rss_bus),
+
+              .is_ls_buffer_full(is_ls_buffer_full));
+
+  ro_buffer ro_buffer_0(
+              .clk(clk_in),
+              .rst(rst_in),
+              .rdy(rdy_in),
+
+              .valid_from_issuer(valid_from_issuer_to_ro_buffer),
+              .signal_from_issuer(signal_from_issuer_to_ro_buffer),
+              .rd_from_issuer(rd_from_issuer_to_ro_buffer),
+              .next_pc_from_issuer(next_pc_from_issuer_to_ro_buffer),
+
+              .dest_to_issuer(dest_from_ro_buffer_to_issuer),
+
+              .qj_from_issuer(qj_from_issuer_to_ro_buffer),
+              .valid_of_vj_to_issuer(valid_of_vj_from_ro_buffer_to_issuer),
+              .vj_to_issuer(vj_from_ro_buffer_to_issuer),
+
+              .qk_from_issuer(qk_from_issuer_to_ro_buffer),
+              .valid_of_vk_to_issuer(valid_of_vk_from_ro_buffer_to_issuer),
+              .vk_to_issuer(vk_from_ro_buffer_to_issuer),
+
+              .is_ro_buffer_full(is_ro_buffer_full));
 
   // Specifications:
   // - Pause cpu(freeze pc, registers, etc.) when rdy_in is low
@@ -110,14 +379,6 @@ module cpu(input wire clk_in,              // system clock signal
   end
 
   always @(posedge clk_in) begin
-    if (cnt == 20) begin
-      stall <= 1;
-      cnt <= 0;
-    end else begin
-      stall <= 0;
-      cnt <= cnt + 1;
-    end
-
     if (rst_in) begin
 
     end else if (!rdy_in) begin

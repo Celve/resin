@@ -9,24 +9,192 @@ module issuer(
     input wire rst,
     input wire rdy,
 
-    input wire ready_from_inst_fetcher,
-    input wire[`INST_TYPE] inst_from_inst_fetcher);
+    // for all
+    input wire is_any_full,
 
+    // for inst fetcher
+    input wire ready_from_inst_fetcher,
+    input wire[`REG_TYPE] pc_from_inst_fetcher,
+    input wire[`REG_TYPE] next_pc_from_inst_fetcher,
+    input wire[`INST_TYPE] inst_from_inst_fetcher,
+
+    // reg file
+    output wire[`REG_ID_TYPE] rs_to_reg_file,
+    input wire[`REG_TYPE] vj_from_reg_file,
+    input wire[`RO_BUFFER_ID_TYPE] qj_from_reg_file,
+
+    output wire[`REG_ID_TYPE] rt_to_reg_file,
+    input wire[`REG_TYPE] vk_from_reg_file,
+    input wire[`RO_BUFFER_ID_TYPE] qk_from_reg_file,
+
+    output reg[`REG_ID_TYPE] rd_to_reg_file,
+    output reg[`RO_BUFFER_ID_TYPE] dest_to_reg_file, // as long as it's greater than 0, then it takes effects
+
+    // for reorder buffer
+    output wire[`RO_BUFFER_ID_TYPE] qj_to_ro_buffer,
+    output wire[`RO_BUFFER_ID_TYPE] qk_to_ro_buffer,
+    input wire valid_of_vj_from_ro_buffer,
+    input wire[`REG_TYPE] vj_from_ro_buffer,
+    input wire valid_of_vk_from_ro_buffer,
+    input wire[`REG_TYPE] vk_from_ro_buffer,
+
+    // for reorder buffer
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer,
+    output reg valid_to_ro_buffer,
+    output reg[`ISSUER_TO_ROB_SIGNAL_TYPE] signal_to_ro_buffer,
+    output reg[`REG_ID_TYPE] rd_to_ro_buffer, // for normal instruction only
+    output reg[`REG_TYPE] next_pc_to_ro_buffer, // for branch only
+
+    // for res station, only in the next cycle can res station receives these
+    // considering obtain them in just one cycle
+    output reg[`RO_BUFFER_ID_TYPE] dest_to_rs_station,
+    output reg[`OP_TYPE] op_to_rs_station,
+    output reg[`RO_BUFFER_ID_TYPE] qj_to_rs_station,
+    output reg[`RO_BUFFER_ID_TYPE] qk_to_rs_station,
+    output reg[`REG_TYPE] vj_to_rs_station,
+    output reg[`REG_TYPE] vk_to_rs_station,
+    output reg[`IMM_TYPE] imm_to_rs_station,
+    output reg[`REG_TYPE] pc_to_rs_station,
+
+
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus,
+    input wire[`REG_TYPE] value_from_rss_bus,
+
+    // for load store buffer
+    output reg[`RO_BUFFER_ID_TYPE] dest_to_ls_buffer,
+    output reg[`OP_TYPE] op_to_ls_buffer,
+    output reg[`RO_BUFFER_ID_TYPE] qj_to_ls_buffer,
+    output reg[`RO_BUFFER_ID_TYPE] qk_to_ls_buffer,
+    output reg[`REG_TYPE] vj_to_ls_buffer,
+    output reg[`REG_TYPE] vk_to_ls_buffer,
+
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus,
+    input wire[`REG_TYPE] value_from_lsb_bus
+  );
+
+  wire[`OP_TYPE] op;
   wire[`REG_ID_TYPE] rd;
   wire[`REG_ID_TYPE] rs1;
   wire[`REG_ID_TYPE] rs2;
   wire[`IMM_TYPE] imm;
 
+  wire is_load_or_store;
+  wire is_store;
+  wire is_branch; // for is_branch, currently, it's b-type instruction + jalr
+
   decoder decoder_0(
             .inst(inst_from_inst_fetcher),
+            .op(op),
             .rd(rd),
             .rs1(rs1),
             .rs2(rs2),
-            .imm(imm));
+            .imm(imm),
+            .is_load_or_store(is_load_or_store),
+            .is_store(is_store),
+            .is_branch(is_branch));
+
+  assign rs_to_reg_file = rs1;
+  assign rt_to_reg_file = rs2;
+
+  assign qj_to_ro_buffer = qj_from_reg_file;
+  assign qk_to_ro_buffer = qk_from_reg_file;
 
   always @(posedge clk) begin
-    if (ready_from_inst_fetcher) begin
-      // $display("rd: %d, rs1: %d, rs2: %d, imm: %h", rd, rs1, rs2, imm);
+    if (ready_from_inst_fetcher && !is_any_full) begin
+      valid_to_ro_buffer <= 1;
+      signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE
+                          : is_branch ? `ISSUER_TO_ROB_SIGNAL_BRANCH : `ISSUER_TO_ROB_SIGNAL_NORMAL;
+      next_pc_to_ro_buffer <= next_pc_from_inst_fetcher;
+
+      if (is_load_or_store) begin
+        // for ro buffer
+        rd_to_ro_buffer <= is_store ? 0 : rs2; // TODO: check whether rt = rs2
+
+        // for reg file
+        rd_to_reg_file <= is_store ? 0 : rs2; // TODO: check whether rt = rs2
+        dest_to_reg_file <= is_store ? 0 : dest_from_ro_buffer; // TODO: check whether rt = rs2
+
+        // for ls buffer
+        dest_to_ls_buffer <= dest_from_ro_buffer;
+        dest_to_rs_station <= 0;
+        op_to_ls_buffer <= op;
+
+        // it might be busy, therefore check ro buffer
+        if (qj_from_reg_file && valid_of_vj_from_ro_buffer) begin
+          qj_to_ls_buffer <= 0;
+          vj_to_ls_buffer <= vj_from_ro_buffer;
+        end else if (qj_from_reg_file && dest_from_rss_bus == qj_from_reg_file) begin
+          qj_to_ls_buffer <= 0;
+          vj_to_ls_buffer <= value_from_rss_bus;
+        end else if (qj_from_reg_file && dest_from_lsb_bus == qj_from_reg_file) begin
+          qj_to_ls_buffer <= 0;
+          vj_to_ls_buffer <= value_from_lsb_bus;
+        end else begin
+          qj_to_ls_buffer <= qj_from_reg_file;
+          vj_to_ls_buffer <= vj_from_reg_file;
+        end
+
+        if (qk_from_reg_file && valid_of_vk_from_ro_buffer) begin
+          qk_to_ls_buffer <= 0;
+          vk_to_ls_buffer <= vk_from_ro_buffer;
+        end else if (qk_from_reg_file && dest_from_rss_bus == qk_from_reg_file) begin
+          qk_to_ls_buffer <= 0;
+          vk_to_ls_buffer <= value_from_rss_bus;
+        end else if (qk_from_reg_file && dest_from_lsb_bus == qk_from_reg_file) begin
+          qk_to_ls_buffer <= 0;
+          vk_to_ls_buffer <= value_from_lsb_bus;
+        end else begin
+          qk_to_ls_buffer <= qk_from_reg_file;
+          vk_to_ls_buffer <= vk_from_reg_file;
+        end
+      end else begin
+        // for ro buffer
+        rd_to_ro_buffer <= rd;
+
+        // for reg file
+        rd_to_reg_file <= rd; // TODO: check whether rt = rs2
+        dest_to_reg_file <= dest_from_ro_buffer; // TODO: check whether rt = rs2
+
+        // for res station
+        dest_to_rs_station <= dest_from_ro_buffer;
+        dest_to_ls_buffer <= 0;
+        op_to_rs_station <= op;
+        imm_to_rs_station <= imm;
+        pc_to_rs_station <= pc_from_inst_fetcher;
+
+        // it might be busy, therefore check ro buffer
+        if (qj_from_reg_file && valid_of_vj_from_ro_buffer) begin
+          qj_to_rs_station <= 0;
+          vj_to_rs_station <= vj_from_ro_buffer;
+        end else if (qj_from_reg_file && dest_from_rss_bus == qj_from_reg_file) begin
+          qj_to_rs_station <= 0;
+          vj_to_rs_station <= value_from_rss_bus;
+        end else if (qj_from_reg_file && dest_from_lsb_bus == qj_from_reg_file) begin
+          qj_to_rs_station <= 0;
+          vj_to_rs_station <= value_from_lsb_bus;
+        end else begin
+          qj_to_rs_station <= qj_from_reg_file;
+          vj_to_rs_station <= vj_from_reg_file;
+        end
+
+        if (qk_from_reg_file && valid_of_vk_from_ro_buffer) begin
+          qk_to_rs_station <= 0;
+          vk_to_rs_station <= vk_from_ro_buffer;
+        end else if (qk_from_reg_file && dest_from_rss_bus == qk_from_reg_file) begin
+          qk_to_rs_station <= 0;
+          vk_to_rs_station <= value_from_rss_bus;
+        end else if (qk_from_reg_file && dest_from_lsb_bus == qk_from_reg_file) begin
+          qk_to_rs_station <= 0;
+          vk_to_rs_station <= value_from_lsb_bus;
+        end else begin
+          qk_to_rs_station <= qk_from_reg_file;
+          vk_to_rs_station <= vk_from_reg_file;
+        end
+      end
+    end else begin
+      dest_to_rs_station <= 0;
+      dest_to_ls_buffer <= 0;
+      valid_to_ro_buffer <= 0;
     end
   end
 

@@ -5,61 +5,71 @@
 
 module decoder(
     input wire[`INST_TYPE] inst,
-    output reg[5:0] inst_type,
+    output reg[`OP_TYPE] op,
     output reg[`REG_ID_TYPE] rd,
     output reg[`REG_ID_TYPE] rs1,
     output reg[`REG_ID_TYPE] rs2,
-    output reg[`IMM_TYPE] imm);
+    output reg[`IMM_TYPE] imm,
+
+    // some enhancements
+    output reg is_load_or_store,
+    output reg is_store,
+    output reg is_branch);
 
   wire[6:0] opcode = inst[6:0];
 
   always @(*) begin
+    is_load_or_store = 0;
+    is_store = 0;
+    is_branch = 0;
     case (opcode)
       7'b0110111: begin // LUI
         rd = inst[11:7];
         rs1 = 5'b00000;
         rs2 = 5'b00000;
-        imm = inst[31:12];
-        inst_type = `LUI_INST;
+        imm = {12'b0, inst[31:12]};
+        op = `LUI_INST;
       end
 
       7'b0010111: begin // AUIPC
         rd = inst[11:7];
         rs1 = 5'b00000;
         rs2 = 5'b00000;
-        imm = inst[31:12];
-        inst_type = `AUIPC_INST;
+        imm = {12'b0, inst[31:12]};
+        op = `AUIPC_INST;
       end
 
       7'b1101111: begin // JAL
         rd = inst[11:7];
         rs1 = 5'b00000;
         rs2 = 5'b00000;
-        imm = {inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
-        inst_type = `JAL_INST;
+        imm = {12'b0, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
+        op = `JAL_INST;
       end
 
       7'b1100111: begin // JALR
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {inst[31:20], 1'b0};
-        inst_type = `JALR_INST;
+        imm = {20'b0, inst[31:20], 1'b0};
+        op = `JALR_INST;
+        is_branch = 1;
       end
 
       7'b1100011: begin // B-type
         rd = 5'b00000;
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = {inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
+        imm = {20'b0, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
+        is_branch = 1;
 
         case (inst[14:12])
-          3'b000: inst_type = `BEQ_INST;
-          3'b001: inst_type = `BNE_INST;
-          3'b100: inst_type = `BLT_INST;
-          3'b101: inst_type = `BGE_INST;
-          3'b110: inst_type = `BLTU_INST;
-          3'b111: inst_type = `BGEU_INST;
+          3'b000: op = `BEQ_INST;
+          3'b001: op = `BNE_INST;
+          3'b100: op = `BLT_INST;
+          3'b101: op = `BGE_INST;
+          3'b110: op = `BLTU_INST;
+          3'b111: op = `BGEU_INST;
         endcase
       end
 
@@ -67,14 +77,15 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = inst[31:20];
+        imm = {20'b0, inst[31:20]};
+        is_load_or_store = 1;
 
         case (inst[14:12])
-          3'b000: inst_type = `LB_INST;
-          3'b001: inst_type = `LH_INST;
-          3'b010: inst_type = `LW_INST;
-          3'b100: inst_type = `LBU_INST;
-          3'b101: inst_type = `LHU_INST;
+          3'b000: op = `LB_INST;
+          3'b001: op = `LH_INST;
+          3'b010: op = `LW_INST;
+          3'b100: op = `LBU_INST;
+          3'b101: op = `LHU_INST;
         endcase
       end
 
@@ -82,12 +93,14 @@ module decoder(
         rd = 5'b00000;
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = {inst[31:25], inst[11:7]};
+        imm = {20'b0, inst[31:25], inst[11:7]};
+        is_load_or_store = 1;
+        is_store = 1;
 
         case (inst[14:12])
-          3'b000: inst_type = `SB_INST;
-          3'b001: inst_type = `SH_INST;
-          3'b010: inst_type = `SW_INST;
+          3'b000: op = `SB_INST;
+          3'b001: op = `SH_INST;
+          3'b010: op = `SW_INST;
         endcase
       end
 
@@ -95,20 +108,20 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = inst[31:20];
+        imm = {20'b0, inst[31:20]};
 
         case(inst[14:12])
-          3'b000: inst_type = `ADDI_INST;
-          3'b010: inst_type = `SLTI_INST;
-          3'b011: inst_type = `SLTIU_INST;
-          3'b100: inst_type = `XORI_INST;
-          3'b110: inst_type = `ORI_INST;
-          3'b111: inst_type = `ANDI_INST;
+          3'b000: op = `ADDI_INST;
+          3'b010: op = `SLTI_INST;
+          3'b011: op = `SLTIU_INST;
+          3'b100: op = `XORI_INST;
+          3'b110: op = `ORI_INST;
+          3'b111: op = `ANDI_INST;
           3'b001: begin
             case (inst[30:25])
-              6'b000000: inst_type = `SLLI_INST;
-              6'b010000: inst_type = `SRLI_INST;
-              6'b010000: inst_type = `SRAI_INST;
+              6'b000000: op = `SLLI_INST;
+              6'b010000: op = `SRLI_INST;
+              6'b010000: op = `SRAI_INST;
             endcase
             imm = inst[24:20];
           end
@@ -120,29 +133,29 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = 1'b0;
+        imm = 32'b0;
         case (inst[14:12])
           3'b000: begin
             case (inst[30:25])
-              6'b000000: inst_type = `ADD_INST;
-              6'b010000: inst_type = `SUB_INST;
+              6'b000000: op = `ADD_INST;
+              6'b010000: op = `SUB_INST;
             endcase
           end
 
-          3'b001: inst_type = `SLL_INST;
-          3'b010: inst_type = `SLT_INST;
-          3'b011: inst_type = `SLTIU_INST;
-          3'b100: inst_type = `XOR_INST;
+          3'b001: op = `SLL_INST;
+          3'b010: op = `SLT_INST;
+          3'b011: op = `SLTIU_INST;
+          3'b100: op = `XOR_INST;
 
           3'b101: begin
             case (inst[30:25])
-              6'b000000: inst_type = `SRL_INST;
-              6'b010000: inst_type = `SRA_INST;
+              6'b000000: op = `SRL_INST;
+              6'b010000: op = `SRA_INST;
             endcase
           end
 
-          3'b110: inst_type = `OR_INST;
-          3'b111: inst_type = `AND_INST;
+          3'b110: op = `OR_INST;
+          3'b111: op = `AND_INST;
         endcase
       end
     endcase
