@@ -186,16 +186,20 @@ module cpu(input wire clk_in,              // system clock signal
   // rob bus
   wire reset_from_ro_buffer_to_rob_bus;
   wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
+  wire store_from_ro_buffer_to_rob_bus;
 
   wire reset_from_rob_bus_to_issuer;
   wire reset_from_rob_bus_to_rs_station;
   wire reset_from_rob_bus_to_ls_buffer;
+  wire store_from_rob_bus_to_ls_buffer;
   wire reset_from_rob_bus_to_ro_buffer;
   wire reset_from_rob_bus_to_reg_file;
 
   rob_bus rob_bus_0(
             .reset_from_ro_buffer(reset_from_ro_buffer_to_rob_bus),
             .pc_from_ro_buffer(pc_from_ro_buffer_to_rob_bus),
+            .store_from_ro_buffer(store_from_ro_buffer_to_rob_bus),
+
             .reset_to_inst_fetcher(reset_from_rob_bus_to_inst_fetcher),
             .pc_to_inst_fetcher(pc_from_rob_bus_to_inst_fetcher),
 
@@ -380,6 +384,7 @@ module cpu(input wire clk_in,              // system clock signal
               .value_from_rss_bus(value_from_rss_bus_to_ls_buffer),
 
               .reset_from_rob_bus(reset_from_rob_bus_to_ls_buffer),
+              .store_from_rob_bus(store_from_rob_bus_to_ls_buffer),
 
               .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
               .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
@@ -416,6 +421,8 @@ module cpu(input wire clk_in,              // system clock signal
 
               .reset_to_rob_bus(reset_from_ro_buffer_to_rob_bus),
               .pc_to_rob_bus(pc_from_ro_buffer_to_rob_bus),
+              .store_to_rob_bus(store_from_ro_buffer_to_rob_bus),
+
               .reset_from_rob_bus(reset_from_rob_bus_to_ro_buffer),
 
               .dest_from_lsb_bus(dest_from_lsb_bus_to_ro_buffer),

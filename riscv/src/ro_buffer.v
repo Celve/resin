@@ -30,6 +30,8 @@ module ro_buffer(
     // for rob bus
     output reg reset_to_rob_bus,
     output reg[`REG_TYPE] pc_to_rob_bus,
+    output reg store_to_rob_bus,
+
     input wire reset_from_rob_bus,
 
     // for lsb bus
@@ -68,6 +70,7 @@ module ro_buffer(
     if (is_any_reset) begin
       head <= 1;
       tail <= 1;
+      size <= 0;
       reset_to_rob_bus <= 0;
       for (integer i = 1; i <= `RO_BUFFER_SIZE_PLUS_1; i++) begin
         signal[i] <= 0;
@@ -116,6 +119,7 @@ module ro_buffer(
           dest_to_reg_file <= 0;
           rd_to_reg_file <= 0;
           value_to_reg_file <= 0;
+          store_to_rob_bus <= 0;
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
             reset_to_rob_bus <= 1;
             pc_to_rob_bus <= correct_next_pc[head];
@@ -124,15 +128,18 @@ module ro_buffer(
           dest_to_reg_file <= 0;
           rd_to_reg_file <= 0;
           value_to_reg_file <= 0;
+          store_to_rob_bus <= 1;
         end else begin
           dest_to_reg_file <= head;
           rd_to_reg_file <= rd[head];
           value_to_reg_file <= value[head];
+          store_to_rob_bus <= 0;
         end
       end else begin
         dest_to_reg_file <= 0;
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
+        store_to_rob_bus <= 0;
       end
     end
   end
