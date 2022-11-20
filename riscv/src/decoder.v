@@ -43,7 +43,7 @@ module decoder(
         rd = inst[11:7];
         rs1 = 5'b00000;
         rs2 = 5'b00000;
-        imm = {12'b0, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
+        imm = {{12{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
         op = `JAL_INST;
         is_branch = 1;
       end
@@ -52,7 +52,7 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {20'b0, inst[31:20], 1'b0};
+        imm = {{20{inst[31]}}, inst[31:20], 1'b0};
         op = `JALR_INST;
         is_branch = 1;
       end
@@ -61,7 +61,7 @@ module decoder(
         rd = 5'b00000;
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = {20'b0, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
+        imm = {{20{inst[31]}}, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
         is_branch = 1;
 
         case (inst[14:12])
@@ -74,11 +74,11 @@ module decoder(
         endcase
       end
 
-      7'b0000011: begin // I-type
+      7'b0000011: begin // L-type
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {20'b0, inst[31:20]};
+        imm = {{20{inst[31]}}, inst[31:20]};
         is_load_or_store = 1;
 
         case (inst[14:12])
@@ -94,7 +94,7 @@ module decoder(
         rd = 5'b00000;
         rs1 = inst[19:15];
         rs2 = inst[24:20];
-        imm = {20'b0, inst[31:25], inst[11:7]};
+        imm = {{20{inst[31]}}, inst[31:25], inst[11:7]};
         is_load_or_store = 1;
         is_store = 1;
 
@@ -109,7 +109,7 @@ module decoder(
         rd = inst[11:7];
         rs1 = inst[19:15];
         rs2 = 5'b00000;
-        imm = {20'b0, inst[31:20]};
+        imm = {{20{inst[31]}}, inst[31:20]};
 
         case(inst[14:12])
           3'b000: op = `ADDI_INST;
