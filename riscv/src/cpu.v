@@ -147,6 +147,7 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`RO_BUFFER_ID_TYPE] qk_from_issuer_to_ls_buffer;
   wire[`REG_TYPE] vj_from_issuer_to_ls_buffer;
   wire[`REG_TYPE] vk_from_issuer_to_ls_buffer;
+  wire[`IMM_TYPE] a_from_issuer_to_ls_buffer;
 
   // rss bus
   wire[`RO_BUFFER_ID_TYPE] dest_from_rs_station_to_rss_bus;
@@ -322,6 +323,7 @@ module cpu(input wire clk_in,              // system clock signal
            .qk_to_ls_buffer(qk_from_issuer_to_ls_buffer),
            .vj_to_ls_buffer(vj_from_issuer_to_ls_buffer),
            .vk_to_ls_buffer(vk_from_issuer_to_ls_buffer),
+           .a_to_ls_buffer(a_from_issuer_to_ls_buffer),
 
            .dest_from_lsb_bus(dest_from_lsb_bus_to_issuer),
            .value_from_lsb_bus(value_from_lsb_bus_to_issuer),
@@ -369,6 +371,7 @@ module cpu(input wire clk_in,              // system clock signal
               .qk_from_issuer(qk_from_issuer_to_ls_buffer),
               .vj_from_issuer(vj_from_issuer_to_ls_buffer),
               .vk_from_issuer(vk_from_issuer_to_ls_buffer),
+              .a_from_issuer(a_from_issuer_to_ls_buffer),
 
               .dest_from_lsb_bus(dest_from_lsb_bus_to_ls_buffer),
               .value_from_lsb_bus(value_from_lsb_bus_to_ls_buffer),
@@ -381,8 +384,9 @@ module cpu(input wire clk_in,              // system clock signal
               .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
               .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
               .addr_to_mem_ctrler(addr_from_dcache_to_mem_ctrler),
+              .cache_line_to_mem_ctrler(data_from_dcache_to_mem_ctrler),
               .ready_from_mem_ctrler(ready_from_mem_ctrler_to_dcache),
-              .cache_line_from_mem_ctrler(data_from_dcache_to_mem_ctrler),
+              .cache_line_from_mem_ctrler(data_from_mem_ctrler_to_dcache),
 
               .dest_to_lsb_bus(dest_from_ls_buffer_to_lsb_bus),
               .value_to_lsb_bus(value_from_ls_buffer_to_lsb_bus),

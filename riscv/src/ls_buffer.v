@@ -16,6 +16,7 @@ module ls_buffer(
     input wire[`RO_BUFFER_ID_TYPE] qk_from_issuer,
     input wire[`REG_TYPE] vj_from_issuer,
     input wire[`REG_TYPE] vk_from_issuer,
+    input wire[`IMM_TYPE] a_from_issuer,
 
     // for ls buffer
     input wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus,
@@ -162,6 +163,21 @@ module ls_buffer(
         busy[i] <= 0;
         dest[i] <= 0;
       end
+      last_exec <= 0;
+      state <= IDLE;
+      is_sign_to_sign_ext <= 0;
+      is_byte_to_sign_ext <= 0;
+      is_half_to_sign_ext <= 0;
+      is_word_to_sign_ext <= 0;
+      value_to_sign_ext <= 0;
+      if (rst) begin
+        for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
+          cache_valid_bits[i] <= 0;
+          cache_tags[i] <= 0;
+          cache_lines[i] <= 0;
+          cache_dirty_bits[i] <= 0;
+        end
+      end
     end
   end
 
@@ -173,6 +189,7 @@ module ls_buffer(
         qk[free] <= qk_from_issuer;
         vj[free] <= vj_from_issuer;
         vk[free] <= vk_from_issuer;
+        a[free] <= a_from_issuer;
         busy[free] <= 1;
         dest[free] <= dest_from_issuer;
       end
@@ -288,6 +305,7 @@ module ls_buffer(
             end
           endcase
           last_exec <= 0;
+          busy[exec] <= 0;
         end else begin
           dest_to_lsb_bus <= 0;
 
@@ -303,6 +321,7 @@ module ls_buffer(
           cache_tags[index] <= tag;
           cache_valid_bits[index] <= 1;
           if (cache_dirty_bits[index]) begin
+            state <= WRITE;
             cache_dirty_bits[index] <= 0;
             rw_flag_to_mem_ctrler <= 1;
             addr_to_mem_ctrler <= index << `CACHE_LINE_WIDTH;
@@ -312,6 +331,9 @@ module ls_buffer(
             state <= IDLE;
           end
         end
+      end else if (state == WRITE) begin
+        valid_to_mem_ctrler <= 0;
+        state <= IDLE;
       end
     end
   end
