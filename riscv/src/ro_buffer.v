@@ -114,12 +114,16 @@ module ro_buffer(
         size <= size - 1;
         if (signal[head] == `ISSUER_TO_ROB_SIGNAL_BRANCH) begin
           dest_to_reg_file <= 0;
+          rd_to_reg_file <= 0;
+          value_to_reg_file <= 0;
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
             reset_to_rob_bus <= 1;
             pc_to_rob_bus <= correct_next_pc[head];
           end
         end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_STORE) begin
           dest_to_reg_file <= 0;
+          rd_to_reg_file <= 0;
+          value_to_reg_file <= 0;
         end else begin
           dest_to_reg_file <= head;
           rd_to_reg_file <= rd[head];
@@ -127,6 +131,8 @@ module ro_buffer(
         end
       end else begin
         dest_to_reg_file <= 0;
+        rd_to_reg_file <= 0;
+        value_to_reg_file <= 0;
       end
     end
   end

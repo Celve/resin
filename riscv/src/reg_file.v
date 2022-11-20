@@ -38,9 +38,13 @@ module reg_file(
   wire is_any_reset = rst || reset_from_rob_bus;
 
   always @(posedge clk) begin
-    if (is_any_reset) begin
+    if (rst) begin
       for (integer i = 0; i < `REG_NUM; i = i + 1) begin
         values[i] <= 0;
+        status[i] <= 0;
+      end
+    end else if (reset_from_rob_bus) begin
+      for (integer i = 0; i < `REG_NUM; i = i + 1) begin
         status[i] <= 0;
       end
     end

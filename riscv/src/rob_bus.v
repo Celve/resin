@@ -24,6 +24,7 @@ module rob_bus(
   assign reset_to_rs_station = reset_from_ro_buffer;
   assign reset_to_ls_buffer = reset_from_ro_buffer;
   assign reset_to_ro_buffer = reset_from_ro_buffer;
+  assign reset_to_reg_file = reset_from_ro_buffer;
 
 endmodule
 
