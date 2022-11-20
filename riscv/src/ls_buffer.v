@@ -94,7 +94,7 @@ module ls_buffer(
 
   assign is_ls_buffer_full = size == `LOAD_STORE_BUFFER_SIZE;
 
-  wire[`LS_BUFFER_ID_TYPE] calc =
+  wire[`LS_BUFFER_ID_TYPE] calc = // a block way
       !qj[1] && a[1] && busy[1] ? 1 :
       !qj[2] && a[2] && busy[2] ? 2 :
       !qj[3] && a[3] && busy[3] ? 3 :
@@ -159,7 +159,8 @@ module ls_buffer(
         a[tail] <= a_from_issuer;
         busy[tail] <= 1;
         dest[tail] <= dest_from_issuer;
-        tail <= tail == `LOAD_STORE_BUFFER_SIZE_MINUS_1 ? 1 : tail + 1;
+        tail <= tail == `LOAD_STORE_BUFFER_SIZE ? 1 : tail + 1;
+        size <= size + 1;
       end
   end
 
@@ -176,7 +177,7 @@ module ls_buffer(
   always @(posedge clk) begin
     if (!is_any_reset) begin
       if (dest_from_lsb_bus) begin
-        for (integer i = 0; i < `LOAD_STORE_BUFFER_SIZE; i = i + 1) begin
+        for (integer i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_lsb_bus;
@@ -188,7 +189,7 @@ module ls_buffer(
         end
       end
       if (dest_from_rss_bus) begin
-        for (integer i = 0; i < `LOAD_STORE_BUFFER_SIZE; i = i + 1) begin
+        for (integer i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_rss_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_rss_bus;
@@ -213,7 +214,7 @@ module ls_buffer(
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      if (state == IDLE && size && hit && op[head] > `LHU_INST) begin
+      if (state == IDLE && size && !a[head] && hit && op[head] > `LHU_INST) begin
         if (committed_store_cnt) begin
           committed_store_cnt <= store_from_rob_bus ? committed_store_cnt : committed_store_cnt - 1;
         end
@@ -226,7 +227,7 @@ module ls_buffer(
   // fetch data
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      if (state == IDLE && size) begin
+      if (state == IDLE && size && !a[head]) begin
         if (hit) begin
           if (op[head] < `SB_INST) begin
             case (op[head])
@@ -275,7 +276,9 @@ module ls_buffer(
                 is_word_to_sign_ext <= 0;
               end
             endcase
-            head <= head == `LOAD_STORE_BUFFER_SIZE_MINUS_1 ? 1 : head + 1;
+            head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
+            size <= size - 1;
+            busy[head] <= 0;
           end else if (committed_store_cnt || store_from_rob_bus) begin
             case(op[head])
               `SB_INST: begin
@@ -297,6 +300,8 @@ module ls_buffer(
                 cache_dirty_bits[index] <= 1;
               end
             endcase
+            head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
+            busy[head] <= 0;
           end
         end else begin
           dest_to_lsb_bus <= 0;

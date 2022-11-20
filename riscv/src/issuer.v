@@ -103,6 +103,13 @@ module issuer(
   assign qk_to_ro_buffer = qk_from_reg_file;
 
   always @(posedge clk) begin
+    if (rst || reset_from_rob_bus) begin
+      dest_to_reg_file <= 0;
+      rd_to_reg_file <= 0;
+    end
+  end
+
+  always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus && ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE

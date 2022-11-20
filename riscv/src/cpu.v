@@ -203,9 +203,11 @@ module cpu(input wire clk_in,              // system clock signal
             .reset_to_inst_fetcher(reset_from_rob_bus_to_inst_fetcher),
             .pc_to_inst_fetcher(pc_from_rob_bus_to_inst_fetcher),
 
+            .reset_to_ls_buffer(reset_from_rob_bus_to_ls_buffer),
+            .store_to_ls_buffer(store_from_rob_bus_to_ls_buffer),
+
             .reset_to_issuer(reset_from_rob_bus_to_issuer),
             .reset_to_rs_station(reset_from_rob_bus_to_rs_station),
-            .reset_to_ls_buffer(reset_from_rob_bus_to_ls_buffer),
             .reset_to_ro_buffer(reset_from_rob_bus_to_ro_buffer),
             .reset_to_reg_file(reset_from_rob_bus_to_reg_file));
 

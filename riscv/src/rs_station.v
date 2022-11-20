@@ -105,6 +105,8 @@ module rs_station(
       !busy[16] ? 16 :
       0;
 
+  wire debug = !qj[1] && !qk[1] && busy[1];
+
   wire[`RES_STATION_ID_TYPE] exec_index =
       !qj[1] && !qk[1] && busy[1] ? 1 :
       !qj[2] && !qk[2] && busy[2] ? 2 :
@@ -127,7 +129,7 @@ module rs_station(
   always @(posedge clk) begin
     if (is_any_reset) begin
       state <= 0;
-      for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
+      for (integer i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
         op[i] <= 0;
         qj[i] <= 0;
         qk[i] <= 0;
@@ -146,7 +148,7 @@ module rs_station(
   always @(posedge clk) begin
     if (!is_any_reset) begin
       if (dest_from_lsb_bus) begin
-        for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
+        for (integer i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_lsb_bus;
@@ -158,7 +160,7 @@ module rs_station(
         end
       end
       if (dest_from_rss_bus) begin
-        for (integer i = 0; i < `RESERVATION_STATION_SIZE; i = i + 1) begin
+        for (integer i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_rss_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_rss_bus;
