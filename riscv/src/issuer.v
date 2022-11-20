@@ -206,6 +206,7 @@ module issuer(
       dest_to_rs_station <= 0;
       dest_to_ls_buffer <= 0;
       valid_to_ro_buffer <= 0;
+      rd_to_reg_file <= 0;
     end
   end
 

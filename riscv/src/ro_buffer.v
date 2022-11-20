@@ -62,7 +62,10 @@ module ro_buffer(
 
   wire is_any_reset = rst || reset_from_rob_bus;
 
-  assign is_ro_buffer_full = size == `RO_BUFFER_SIZE;
+  wire[2:0] temp_signal = signal[2];
+  wire[`REG_TYPE] temp_status = status[2];
+
+  assign is_ro_buffer_full = size >= `RO_BUFFER_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
 
@@ -79,7 +82,7 @@ module ro_buffer(
       rd_to_reg_file <= 0;
       value_to_reg_file <= 0;
 
-      for (integer i = 1; i <= `RO_BUFFER_SIZE_PLUS_1; i++) begin
+      for (integer i = 1; i < `RO_BUFFER_SIZE_PLUS_1; i++) begin
         signal[i] <= 0;
         status[i] <= 0;
         value[i] <= 0;
@@ -117,6 +120,9 @@ module ro_buffer(
   end
 
   wire[`REG_TYPE] current_next_pc = supposed_next_pc[head];
+  wire[`REG_TYPE] right_next_pc = correct_next_pc[head];
+  wire[1:0] current_signal = signal[head];
+  wire current_status = status[head];
 
   always @(posedge clk) begin
     if (!is_any_reset) begin
@@ -131,24 +137,19 @@ module ro_buffer(
         store_to_rob_bus <= 1;
       end else if (status[head]) begin
         head <= head == `RO_BUFFER_SIZE ? 1 : head + 1;
-        size <= size - 1;
         status[head] <= 0;
         signal[head] <= `ISSUER_TO_ROB_SIGNAL_DEFAULT;
 
+        dest_to_reg_file <= head;
+        rd_to_reg_file <= rd[head];
+        value_to_reg_file <= value[head];
+        store_to_rob_bus <= 0;
+
         if (signal[head] == `ISSUER_TO_ROB_SIGNAL_BRANCH) begin
-          dest_to_reg_file <= 0;
-          rd_to_reg_file <= 0;
-          value_to_reg_file <= 0;
-          store_to_rob_bus <= 0;
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
             reset_to_rob_bus <= 1;
             pc_to_rob_bus <= correct_next_pc[head];
           end
-        end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_NORMAL) begin
-          dest_to_reg_file <= head;
-          rd_to_reg_file <= rd[head];
-          value_to_reg_file <= value[head];
-          store_to_rob_bus <= 0;
         end
       end else begin
         dest_to_reg_file <= 0;

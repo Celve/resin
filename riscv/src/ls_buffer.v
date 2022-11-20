@@ -92,7 +92,7 @@ module ls_buffer(
              .input_data(value_to_sign_ext),
              .extended_data(value_to_lsb_bus));
 
-  assign is_ls_buffer_full = size == `LOAD_STORE_BUFFER_SIZE;
+  assign is_ls_buffer_full = size >= `LOAD_STORE_BUFFER_SIZE_MINUS_1; // FIXME:
 
   wire[`LS_BUFFER_ID_TYPE] calc = // a block way
       !qj[1] && a[1] && busy[1] ? 1 :
@@ -135,6 +135,7 @@ module ls_buffer(
       is_byte_to_sign_ext <= 0;
       is_half_to_sign_ext <= 0;
       is_word_to_sign_ext <= 0;
+      dest_to_lsb_bus <= 0;
       value_to_sign_ext <= 0;
       if (rst) begin
         committed_store_cnt <= 0;
@@ -160,8 +161,13 @@ module ls_buffer(
         busy[tail] <= 1;
         dest[tail] <= dest_from_issuer;
         tail <= tail == `LOAD_STORE_BUFFER_SIZE ? 1 : tail + 1;
-        size <= size + 1;
       end
+  end
+
+  always @(posedge clk) begin
+    if (!is_any_reset) begin
+      size <= size + (dest_from_issuer != 0) - (state == IDLE && size && !a[head] && hit && (op[head] < `SB_INST || committed_store_cnt || store_from_rob_bus));
+    end
   end
 
   // calculcate address
@@ -232,7 +238,6 @@ module ls_buffer(
           if (op[head] < `SB_INST) begin
             case (op[head])
               `LB_INST: begin
-                dest_to_lsb_bus <= dest[head];
                 value_to_sign_ext <= cache_lines[index][offset];
                 is_sign_to_sign_ext <= 1;
                 is_byte_to_sign_ext <= 1;
@@ -241,7 +246,6 @@ module ls_buffer(
               end
 
               `LH_INST: begin
-                dest_to_lsb_bus <= dest[head];
                 value_to_sign_ext <= {cache_lines[index][offset + 1], cache_lines[index][offset]};
                 is_sign_to_sign_ext <= 1;
                 is_byte_to_sign_ext <= 0;
@@ -250,7 +254,6 @@ module ls_buffer(
               end
 
               `LW_INST: begin
-                dest_to_lsb_bus <= dest[head];
                 value_to_sign_ext <= {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]};
                 is_sign_to_sign_ext <= 0;
                 is_byte_to_sign_ext <= 0;
@@ -259,7 +262,6 @@ module ls_buffer(
               end
 
               `LBU_INST: begin
-                dest_to_lsb_bus <= dest[head];
                 value_to_sign_ext <= cache_lines[index][offset];
                 is_sign_to_sign_ext <= 0;
                 is_byte_to_sign_ext <= 1;
@@ -268,7 +270,6 @@ module ls_buffer(
               end
 
               `LHU_INST: begin
-                dest_to_lsb_bus <= dest[head];
                 value_to_sign_ext <= cache_lines[index][offset];
                 is_sign_to_sign_ext <= 0;
                 is_byte_to_sign_ext <= 0;
@@ -276,8 +277,8 @@ module ls_buffer(
                 is_word_to_sign_ext <= 0;
               end
             endcase
+            dest_to_lsb_bus <= dest[head];
             head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
-            size <= size - 1;
             busy[head] <= 0;
           end else if (committed_store_cnt || store_from_rob_bus) begin
             case(op[head])
@@ -300,11 +301,17 @@ module ls_buffer(
                 cache_dirty_bits[index] <= 1;
               end
             endcase
+            dest_to_lsb_bus <= 0;
+            value_to_sign_ext <= 0;
             head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
             busy[head] <= 0;
+          end else begin
+            dest_to_lsb_bus <= 0;
+            value_to_sign_ext <= 0;
           end
         end else begin
           dest_to_lsb_bus <= 0;
+          value_to_sign_ext <= 0;
 
           state <= READ;
           valid_to_mem_ctrler <= 1;

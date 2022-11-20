@@ -17,11 +17,13 @@ module decoder(
     output reg is_branch);
 
   wire[6:0] opcode = inst[6:0];
+  reg temp;
 
   always @(*) begin
     is_load_or_store = 0;
     is_store = 0;
     is_branch = 0;
+    temp = 0;
     case (opcode)
       7'b0110111: begin // LUI
         rd = inst[11:7];
@@ -119,10 +121,13 @@ module decoder(
           3'b110: op = `ORI_INST;
           3'b111: op = `ANDI_INST;
           3'b001: begin
-            case (inst[30:25])
-              6'b000000: op = `SLLI_INST;
-              6'b010000: op = `SRLI_INST;
-              6'b010000: op = `SRAI_INST;
+            op = `SLLI_INST;
+            imm = inst[24:20];
+          end
+          3'b101: begin
+            case (inst[31:25])
+              7'b0000000: op = `SLLI_INST;
+              7'b0100000: op = `SRLI_INST;
             endcase
             imm = inst[24:20];
           end
@@ -135,23 +140,24 @@ module decoder(
         rs1 = inst[19:15];
         rs2 = inst[24:20];
         imm = 32'b0;
+        temp = 1;
         case (inst[14:12])
           3'b000: begin
-            case (inst[30:25])
-              6'b000000: op = `ADD_INST;
-              6'b010000: op = `SUB_INST;
+            case (inst[31:25])
+              7'b0000000: op = `ADD_INST;
+              7'b0100000: op = `SUB_INST;
             endcase
           end
 
           3'b001: op = `SLL_INST;
           3'b010: op = `SLT_INST;
-          3'b011: op = `SLTIU_INST;
+          3'b011: op = `SLTU_INST;
           3'b100: op = `XOR_INST;
 
           3'b101: begin
             case (inst[30:25])
-              6'b000000: op = `SRL_INST;
-              6'b010000: op = `SRA_INST;
+              7'b0000000: op = `SRL_INST;
+              7'b0100000: op = `SRA_INST;
             endcase
           end
 

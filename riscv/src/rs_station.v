@@ -80,11 +80,9 @@ module rs_station(
             .value(value_from_al_unit),
             .next_pc(next_pc_from_al_unit));
 
-  assign is_rs_station_full =
-         busy[1] & busy[2] & busy[3] & busy[4] &
-         busy[5] & busy[6] & busy[7] & busy[8] &
-         busy[9] & busy[10] & busy[11] & busy[12] &
-         busy[13] & busy[14] & busy[15] & busy[16];
+  reg[`RES_STATION_ID_TYPE] size;
+
+  assign is_rs_station_full = size >= `RESERVATION_STATION_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
 
   wire[`RES_STATION_ID_TYPE] free_index =
       !busy[1] ? 1 :
@@ -128,6 +126,7 @@ module rs_station(
 
   always @(posedge clk) begin
     if (is_any_reset) begin
+      size <= 0;
       state <= 0;
       for (integer i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
         op[i] <= 0;
@@ -197,6 +196,10 @@ module rs_station(
         dest_to_rss_bus <= dest[last_exec_index];
         value_to_rss_bus <= value_from_al_unit;
         next_pc_to_rss_bus <= next_pc_from_al_unit;
+      end else begin
+        dest_to_rss_bus <= 0;
+        value_to_rss_bus <= 0;
+        next_pc_to_rss_bus <= 0;
       end
     end
   end
@@ -215,6 +218,12 @@ module rs_station(
         dest[free_index] <= dest_from_issuer;
         busy[free_index] <= 1;
       end
+    end
+  end
+
+  always @(posedge clk) begin
+    if (!is_any_reset) begin
+      size <= size + (dest_from_issuer != 0) - (state == WAITING && valid_from_al_unit);
     end
   end
 
