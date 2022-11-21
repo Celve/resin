@@ -110,10 +110,13 @@ module new_ls_buffer(
   wire is_head_io_signal = vj[head] >= `IO_THRESHOLD;
   wire is_head_executable = size && !qj[head] && !qk[head] && !a[head];
   wire is_head_store = op[head] > `LHU_INST;
-  wire is_head_storable = committed_store_cnt || store_from_rob_bus;
+  wire is_head_storable = committed_tail != 0;
 
-  reg[`LS_BUFFER_ID_TYPE] committed_store_cnt;
-  // FIXME: reg[`LS_BUFFER_ID_TYPE] committed_io_load_cnt;
+  wire[`LS_BUFFER_ID_TYPE] committed_tail_offset =
+      !committed_tail ? 0 :
+      committed_tail >= head ? committed_tail - head :
+      `LOAD_STORE_BUFFER_SIZE - head + committed_tail;
+  reg[`LS_BUFFER_ID_TYPE] committed_tail;
 
   // find the one to calculate address
   wire[`LS_BUFFER_ID_TYPE] calc =
@@ -137,20 +140,31 @@ module new_ls_buffer(
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
-      for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
-        op[i] <= 0;
-        qj[i] <= 0;
-        qk[i] <= 0;
-        vj[i] <= 0;
-        vk[i] <= 0;
-        a[i] <= 0;
-        busy[i] <= 0;
-        dest[i] <= 0;
+      if (committed_tail) begin
+        tail <= committed_tail == `LOAD_STORE_BUFFER_SIZE ? 1 : committed_tail + 1;
+        size <= committed_tail_offset + 1;
+        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+          if (committed_tail >= head && (i < head || i > committed_tail)) begin
+            op[i] <= 0;
+            qj[i] <= 0;
+            qk[i] <= 0;
+            vj[i] <= 0;
+            vk[i] <= 0;
+            a[i] <= 0;
+            busy[i] <= 0;
+            dest[i] <= 0;
+          end else if (committed_tail < head && (i > committed_tail && i < head)) begin
+            op[i] <= 0;
+            qj[i] <= 0;
+            qk[i] <= 0;
+            vj[i] <= 0;
+            vk[i] <= 0;
+            a[i] <= 0;
+            busy[i] <= 0;
+            dest[i] <= 0;
+          end
+        end
       end
-
-      head <= 1;
-      tail <= 1;
-      size <= 0;
 
       is_sign_to_sign_ext <= 0;
       is_byte_to_sign_ext <= 0;
@@ -159,8 +173,21 @@ module new_ls_buffer(
       dest_to_lsb_bus <= 0;
       value_to_sign_ext <= 0;
       if (rst) begin
+        head <= 1;
+        tail <= 1;
+        size <= 0;
         state <= IDLE;
-        committed_store_cnt <= 0;
+        committed_tail <= 0;
+        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+          op[i] <= 0;
+          qj[i] <= 0;
+          qk[i] <= 0;
+          vj[i] <= 0;
+          vk[i] <= 0;
+          a[i] <= 0;
+          busy[i] <= 0;
+          dest[i] <= 0;
+        end
         for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
           cache_valid_bits[i] <= 0;
           cache_tags[i] <= 0;
@@ -416,12 +443,16 @@ module new_ls_buffer(
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus) begin
-      if ((state == IDLE && hit && is_head_store && is_head_storable) || (state == WRITE_IO && ready_from_mem_ctrler_to_io)) begin
-        if (committed_store_cnt) begin
-          committed_store_cnt <= store_from_rob_bus ? committed_store_cnt : committed_store_cnt - 1;
+      if (store_from_rob_bus) begin
+        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+          if (busy[i] && busy[i] && dest[i] == store_from_rob_bus) begin
+            committed_tail <= i;
+          end
         end
-      end else if (store_from_rob_bus) begin
-        committed_store_cnt <= committed_store_cnt + 1;
+      end else if ((state == IDLE && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && ready_from_mem_ctrler_to_io)) begin
+        if (committed_tail == head) begin
+          committed_tail <= 0;
+        end
       end
     end
   end

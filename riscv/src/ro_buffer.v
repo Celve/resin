@@ -30,7 +30,7 @@ module ro_buffer(
     // for rob bus
     output reg reset_to_rob_bus,
     output reg[`REG_TYPE] pc_to_rob_bus,
-    output reg store_to_rob_bus,
+    output reg[`RO_BUFFER_ID_TYPE] store_to_rob_bus,
 
     input wire reset_from_rob_bus,
 
@@ -150,7 +150,7 @@ module ro_buffer(
         dest_to_reg_file <= 0;
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
-        store_to_rob_bus <= 1;
+        store_to_rob_bus <= head;
       end else if (status[head]) begin
         head <= head == `RO_BUFFER_SIZE ? 1 : head + 1;
         status[head] <= 0;

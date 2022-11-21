@@ -202,12 +202,12 @@ module cpu(input wire clk_in,              // system clock signal
   // rob bus
   wire reset_from_ro_buffer_to_rob_bus;
   wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
-  wire store_from_ro_buffer_to_rob_bus;
+  wire[`RO_BUFFER_ID_TYPE] store_from_ro_buffer_to_rob_bus;
 
   wire reset_from_rob_bus_to_issuer;
   wire reset_from_rob_bus_to_rs_station;
   wire reset_from_rob_bus_to_ls_buffer;
-  wire store_from_rob_bus_to_ls_buffer;
+  wire[`RO_BUFFER_ID_TYPE] store_from_rob_bus_to_ls_buffer;
   wire reset_from_rob_bus_to_ro_buffer;
   wire reset_from_rob_bus_to_reg_file;
 
