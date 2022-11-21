@@ -337,6 +337,9 @@ module ls_buffer(
       end else if (state == WRITE) begin
         valid_to_mem_ctrler <= 0;
         state <= IDLE;
+      end else begin
+        dest_to_lsb_bus <= 0;
+        value_to_sign_ext <= 0;
       end
     end
   end
