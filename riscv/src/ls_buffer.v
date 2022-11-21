@@ -250,14 +250,6 @@ module ls_buffer(
     end
   end
 
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
-      if (store_from_rob_bus) begin
-        committed_store_cnt <= committed_store_cnt + 1;
-      end
-    end
-  end
-
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!is_any_reset) begin
@@ -410,7 +402,7 @@ module ls_buffer(
           busy[head] <= 0;
         end
       end else if (state == WRITE_IO) begin
-        if (ready_from_mem_ctrler_to_io && (committed_store_cnt || store_from_rob_bus)) begin
+        if (ready_from_mem_ctrler_to_io) begin
           valid_from_io_to_mem_ctrler <= 0;
           state <= IDLE;
           head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;

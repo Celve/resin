@@ -4,6 +4,7 @@
 `include "issuer.v"
 `include "rs_station.v"
 `include "ls_buffer.v"
+`include "new_ls_buffer.v"
 `include "ro_buffer.v"
 `include "reg_file.v"
 `include "lsb_bus.v"
@@ -142,7 +143,6 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`REG_TYPE] vk_from_issuer_to_rs_station;
   wire[`IMM_TYPE] imm_from_issuer_to_rs_station;
   wire[`REG_TYPE] pc_from_issuer_to_rs_station;
-
 
   wire[`RO_BUFFER_ID_TYPE] qj_from_issuer_to_ro_buffer;
   wire[`RO_BUFFER_ID_TYPE] qk_from_issuer_to_ro_buffer;
@@ -382,46 +382,46 @@ module cpu(input wire clk_in,              // system clock signal
 
                .is_rs_station_full(is_rs_station_full));
 
-  ls_buffer ls_buffer_0(
-              .clk(clk_in),
-              .rst(rst_in),
-              .rdy(rdy_in),
+  new_ls_buffer ls_buffer_0(
+                  .clk(clk_in),
+                  .rst(rst_in),
+                  .rdy(rdy_in),
 
-              .dest_from_issuer(dest_from_issuer_to_ls_buffer),
-              .op_from_issuer(op_from_issuer_to_ls_buffer),
-              .qj_from_issuer(qj_from_issuer_to_ls_buffer),
-              .qk_from_issuer(qk_from_issuer_to_ls_buffer),
-              .vj_from_issuer(vj_from_issuer_to_ls_buffer),
-              .vk_from_issuer(vk_from_issuer_to_ls_buffer),
-              .a_from_issuer(a_from_issuer_to_ls_buffer),
+                  .dest_from_issuer(dest_from_issuer_to_ls_buffer),
+                  .op_from_issuer(op_from_issuer_to_ls_buffer),
+                  .qj_from_issuer(qj_from_issuer_to_ls_buffer),
+                  .qk_from_issuer(qk_from_issuer_to_ls_buffer),
+                  .vj_from_issuer(vj_from_issuer_to_ls_buffer),
+                  .vk_from_issuer(vk_from_issuer_to_ls_buffer),
+                  .a_from_issuer(a_from_issuer_to_ls_buffer),
 
-              .dest_from_lsb_bus(dest_from_lsb_bus_to_ls_buffer),
-              .value_from_lsb_bus(value_from_lsb_bus_to_ls_buffer),
+                  .dest_from_lsb_bus(dest_from_lsb_bus_to_ls_buffer),
+                  .value_from_lsb_bus(value_from_lsb_bus_to_ls_buffer),
 
-              .dest_from_rss_bus(dest_from_rss_bus_to_ls_buffer),
-              .value_from_rss_bus(value_from_rss_bus_to_ls_buffer),
+                  .dest_from_rss_bus(dest_from_rss_bus_to_ls_buffer),
+                  .value_from_rss_bus(value_from_rss_bus_to_ls_buffer),
 
-              .reset_from_rob_bus(reset_from_rob_bus_to_ls_buffer),
-              .store_from_rob_bus(store_from_rob_bus_to_ls_buffer),
+                  .reset_from_rob_bus(reset_from_rob_bus_to_ls_buffer),
+                  .store_from_rob_bus(store_from_rob_bus_to_ls_buffer),
 
-              .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
-              .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
-              .addr_to_mem_ctrler(addr_from_dcache_to_mem_ctrler),
-              .cache_line_to_mem_ctrler(data_from_dcache_to_mem_ctrler),
-              .ready_from_mem_ctrler(ready_from_mem_ctrler_to_dcache),
-              .cache_line_from_mem_ctrler(data_from_mem_ctrler_to_dcache),
+                  .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
+                  .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
+                  .addr_to_mem_ctrler(addr_from_dcache_to_mem_ctrler),
+                  .cache_line_to_mem_ctrler(data_from_dcache_to_mem_ctrler),
+                  .ready_from_mem_ctrler(ready_from_mem_ctrler_to_dcache),
+                  .cache_line_from_mem_ctrler(data_from_mem_ctrler_to_dcache),
 
-              .dest_to_lsb_bus(dest_from_ls_buffer_to_lsb_bus),
-              .value_to_lsb_bus(value_from_ls_buffer_to_lsb_bus),
+                  .dest_to_lsb_bus(dest_from_ls_buffer_to_lsb_bus),
+                  .value_to_lsb_bus(value_from_ls_buffer_to_lsb_bus),
 
-              .valid_from_io_to_mem_ctrler(valid_from_io_to_mem_ctrler),
-              .rw_flag_from_io_to_mem_ctrler(rw_flag_from_io_to_mem_ctrler),
-              .addr_from_io_to_mem_ctrler(addr_from_io_to_mem_ctrler),
-              .byte_from_io_to_mem_ctrler(data_from_io_to_mem_ctrler),
-              .ready_from_mem_ctrler_to_io(ready_from_mem_ctrler_to_io),
-              .byte_from_mem_ctrler_to_io(data_from_mem_ctrler_to_io),
+                  .valid_from_io_to_mem_ctrler(valid_from_io_to_mem_ctrler),
+                  .rw_flag_from_io_to_mem_ctrler(rw_flag_from_io_to_mem_ctrler),
+                  .addr_from_io_to_mem_ctrler(addr_from_io_to_mem_ctrler),
+                  .byte_from_io_to_mem_ctrler(data_from_io_to_mem_ctrler),
+                  .ready_from_mem_ctrler_to_io(ready_from_mem_ctrler_to_io),
+                  .byte_from_mem_ctrler_to_io(data_from_mem_ctrler_to_io),
 
-              .is_ls_buffer_full(is_ls_buffer_full));
+                  .is_ls_buffer_full(is_ls_buffer_full));
 
   ro_buffer ro_buffer_0(
               .clk(clk_in),
