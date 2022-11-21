@@ -42,12 +42,22 @@ module ls_buffer(
     input wire ready_from_mem_ctrler,
     input wire[`CACHE_LINE_TYPE] cache_line_from_mem_ctrler,
 
+    // mem ctrler
+    output reg valid_from_io_to_mem_ctrler,
+    output reg rw_flag_from_io_to_mem_ctrler,
+    output reg[`ADDR_TYPE] addr_from_io_to_mem_ctrler,
+    output reg[`BYTE_TYPE] byte_from_io_to_mem_ctrler,
+    input wire ready_from_mem_ctrler_to_io,
+    input wire[`BYTE_TYPE] byte_from_mem_ctrler_to_io,
+
     // for inst_fetcher and others
     output wire is_ls_buffer_full);
 
   parameter[2:0] IDLE = 0;
   parameter[2:0] READ = 1;
-  parameter[2:0] WRITE = 1;
+  parameter[2:0] WRITE = 2;
+  parameter[2:0] READ_IO = 3;
+  parameter[2:0] WRITE_IO = 4;
 
   reg[`OP_TYPE] op[`LOAD_STORE_BUFFER_TYPE];
   reg[`RO_BUFFER_ID_TYPE] qj[`LOAD_STORE_BUFFER_TYPE];
@@ -193,7 +203,11 @@ module ls_buffer(
 
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      size <= size + (dest_from_issuer != 0) - (state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && (op[head] < `SB_INST || committed_store_cnt || store_from_rob_bus));
+      size <= size
+           + (dest_from_issuer != 0)
+           - ((state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && (op[head] < `SB_INST || committed_store_cnt || store_from_rob_bus))
+              || (state == READ_IO && ready_from_mem_ctrler_to_io)
+              || (state == WRITE_IO && ready_from_mem_ctrler_to_io && (committed_store_cnt || store_from_rob_bus)));
     end
   end
 
@@ -247,7 +261,7 @@ module ls_buffer(
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      if (state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && op[head] > `LHU_INST) begin
+      if ((state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && op[head] > `LHU_INST) || (state == WRITE_IO && ready_from_mem_ctrler_to_io)) begin
         if (committed_store_cnt) begin
           committed_store_cnt <= store_from_rob_bus ? committed_store_cnt : committed_store_cnt - 1;
         end
@@ -261,7 +275,23 @@ module ls_buffer(
   always @(posedge clk) begin
     if (!is_any_reset) begin
       if (state == IDLE && size && !qj[head] && !qk[head] && !a[head]) begin
-        if (hit) begin
+        if (vj[head] >= `IO_THRESHOLD) begin
+          dest_to_lsb_bus <= 0;
+          value_to_sign_ext <= 0;
+
+          if (op[head] < `SB_INST) begin // namely load
+            valid_from_io_to_mem_ctrler <= 1;
+            addr_from_io_to_mem_ctrler <= vj[head];
+            rw_flag_from_io_to_mem_ctrler <= 0;
+            state <= READ_IO;
+          end else if (committed_store_cnt || store_from_rob_bus) begin
+            valid_from_io_to_mem_ctrler <= 1;
+            addr_from_io_to_mem_ctrler <= vj[head];
+            rw_flag_from_io_to_mem_ctrler <= 1;
+            byte_from_io_to_mem_ctrler <= vk[head]; // truncate
+            state <= WRITE_IO;
+          end
+        end else if (hit) begin
           if (op[head] < `SB_INST) begin
             case (op[head])
               `LB_INST: begin
@@ -365,6 +395,26 @@ module ls_buffer(
         if (ready_from_mem_ctrler) begin
           valid_to_mem_ctrler <= 0;
           state <= IDLE;
+        end
+      end else if (state == READ_IO) begin
+        if (ready_from_mem_ctrler_to_io) begin
+          valid_from_io_to_mem_ctrler <= 0;
+          state <= IDLE;
+          value_to_sign_ext <= byte_from_mem_ctrler_to_io;
+          is_sign_to_sign_ext <= 1;
+          is_byte_to_sign_ext <= 1;
+          is_half_to_sign_ext <= 0;
+          is_word_to_sign_ext <= 0;
+          dest_to_lsb_bus <= dest[head];
+          head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
+          busy[head] <= 0;
+        end
+      end else if (state == WRITE_IO) begin
+        if (ready_from_mem_ctrler_to_io && (committed_store_cnt || store_from_rob_bus)) begin
+          valid_from_io_to_mem_ctrler <= 0;
+          state <= IDLE;
+          head <= head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
+          busy[head] <= 0;
         end
       end else begin
         dest_to_lsb_bus <= 0;

@@ -48,6 +48,9 @@
 `define CACHE_OFFSET_RANGE `CACHE_LINE_WIDTH - 1:0
 `define CACHE_TAG_AND_INDEX_RANGE `ADDR_WIDTH - 1:`CACHE_LINE_WIDTH
 
+// constants
+`define IO_THRESHOLD 18'h30000
+
 // utils
 `define BYTE_0 7:0
 `define BYTE_1 15:8

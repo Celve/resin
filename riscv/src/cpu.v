@@ -41,6 +41,13 @@ module cpu(input wire clk_in,              // system clock signal
   wire ready_from_mem_ctrler_to_dcache;
   wire[`CACHE_LINE_TYPE] data_from_mem_ctrler_to_dcache;
 
+  wire valid_from_io_to_mem_ctrler;
+  wire[`ADDR_TYPE] addr_from_io_to_mem_ctrler;
+  wire[`BYTE_TYPE] data_from_io_to_mem_ctrler;
+  wire rw_flag_from_io_to_mem_ctrler;
+  wire ready_from_mem_ctrler_to_io;
+  wire[`BYTE_TYPE] data_from_mem_ctrler_to_io;
+
   // full related
   wire is_ls_buffer_full;
   wire is_rs_station_full;
@@ -72,7 +79,16 @@ module cpu(input wire clk_in,              // system clock signal
                .valid_from_dcache(valid_from_dcache_to_mem_ctrler),
                .rw_flag_from_dcache(rw_flag_from_dcache_to_mem_ctrler),
                .ready_to_dcache(ready_from_mem_ctrler_to_dcache),
-               .data_to_dcache(data_from_mem_ctrler_to_dcache));
+               .data_to_dcache(data_from_mem_ctrler_to_dcache),
+
+
+               .addr_from_io(addr_from_io_to_mem_ctrler),
+               .data_from_io(data_from_io_to_mem_ctrler),
+               .valid_from_io(valid_from_io_to_mem_ctrler),
+               .rw_flag_from_io(rw_flag_from_io_to_mem_ctrler),
+               .ready_to_io(ready_from_mem_ctrler_to_io),
+               .data_to_io(data_from_mem_ctrler_to_io)
+             );
 
   // inst fetcher related
   wire valid_from_inst_fetcher_to_icache;
@@ -397,6 +413,13 @@ module cpu(input wire clk_in,              // system clock signal
 
               .dest_to_lsb_bus(dest_from_ls_buffer_to_lsb_bus),
               .value_to_lsb_bus(value_from_ls_buffer_to_lsb_bus),
+
+              .valid_from_io_to_mem_ctrler(valid_from_io_to_mem_ctrler),
+              .rw_flag_from_io_to_mem_ctrler(rw_flag_from_io_to_mem_ctrler),
+              .addr_from_io_to_mem_ctrler(addr_from_io_to_mem_ctrler),
+              .byte_from_io_to_mem_ctrler(data_from_io_to_mem_ctrler),
+              .ready_from_mem_ctrler_to_io(ready_from_mem_ctrler_to_io),
+              .byte_from_mem_ctrler_to_io(data_from_mem_ctrler_to_io),
 
               .is_ls_buffer_full(is_ls_buffer_full));
 

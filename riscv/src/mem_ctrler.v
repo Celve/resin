@@ -29,7 +29,15 @@ module mem_ctrler (
     input wire valid_from_dcache,
     input wire rw_flag_from_dcache,
     output reg ready_to_dcache,
-    output reg[`CACHE_LINE_TYPE] data_to_dcache);
+    output reg[`CACHE_LINE_TYPE] data_to_dcache,
+
+    input wire valid_from_io,
+    input wire[`ADDR_TYPE] addr_from_io,
+    input wire[`BYTE_TYPE] data_from_io,
+    input wire rw_flag_from_io,
+    output reg ready_to_io,
+    output reg[`BYTE_TYPE] data_to_io
+  );
 
   // FIXME: I don't take rdy and rst into consideration currently
 
@@ -41,26 +49,13 @@ module mem_ctrler (
   wire[`CACHE_TAG_AND_INDEX_TYPE] half_addr_from_dcache = addr_from_dcache[`CACHE_TAG_AND_INDEX_RANGE];
 
   parameter[2:0] DEFAULT = 0;
-  parameter[2:0] READ_DCACHE = 1;
-  parameter[2:0] READ_ICACHE = 2;
+  parameter[2:0] READ_ICACHE = 1;
+  parameter[2:0] READ_DCACHE = 2;
   parameter[2:0] WRITE_DCACHE = 3;
+  parameter[2:0] READ_IO = 4;
+  parameter[2:0] WRITE_IO = 5;
 
   always @(posedge clk) begin
-    // calculate addr
-    if (state != 0) begin
-      case (mode)
-        READ_ICACHE: addr_to_ram <= {half_addr_from_icache, state};
-        READ_DCACHE, WRITE_DCACHE: addr_to_ram <= {half_addr_from_dcache, state};
-      endcase
-      state <= state + 1;
-    end
-
-    if (ready_to_dcache || ready_to_icache) begin
-      ready_to_icache <= 0;
-      ready_to_dcache <= 0;
-      vice_mode <= 0;
-    end
-
     if (rst) begin
       state <= 0; // initialize it as idle
       vice_state <= 0;
@@ -68,10 +63,39 @@ module mem_ctrler (
       vice_mode <= DEFAULT;
       ready_to_dcache <= 0;
       ready_to_icache <= 0;
+      ready_to_io <= 0;
     end else begin
+      // calculate addr
+      if (state != 0) begin
+        case (mode)
+          READ_ICACHE: addr_to_ram <= {half_addr_from_icache, state};
+          READ_DCACHE, WRITE_DCACHE: addr_to_ram <= {half_addr_from_dcache, state};
+          READ_IO, WRITE_IO: addr_to_ram <= addr_from_io;
+        endcase
+        state <= state + 1;
+      end
+
+      if (ready_to_dcache || ready_to_icache || ready_to_io) begin
+        ready_to_icache <= 0;
+        ready_to_dcache <= 0;
+        ready_to_io <= 0;
+        vice_mode <= 0;
+      end
+
       case (state)
         0: begin
-          if (valid_from_icache && vice_mode != READ_ICACHE) begin
+          if (valid_from_io && vice_mode != READ_IO && vice_mode != WRITE_IO) begin
+            addr_to_ram <= addr_from_io;
+            rw_select_to_ram <= rw_flag_from_io;
+            data_to_ram <= data_from_io;
+            if (!rw_select_to_ram) begin
+              vice_state <= 1;
+              vice_mode <= READ_IO;
+            end else begin
+              ready_to_io <= 1;
+              vice_mode <= WRITE_IO;
+            end
+          end else if (valid_from_icache && vice_mode != READ_ICACHE) begin
             addr_to_ram <= {half_addr_from_icache, state};
             rw_select_to_ram <= 0;
             state <= 1;
@@ -229,6 +253,10 @@ module mem_ctrler (
             READ_DCACHE: begin
               data_to_dcache[`BYTE_15] <= data_from_ram;
               ready_to_dcache <= 1;
+            end
+            READ_IO: begin
+              data_to_io <= data_from_ram;
+              ready_to_io <= 1;
             end
           endcase
           vice_state <= 0;
