@@ -118,11 +118,11 @@ module issuer(
 
       if (is_load_or_store) begin
         // for ro buffer
-        rd_to_ro_buffer <= is_store ? 0 : rs2; // TODO: check whether rt = rs2
+        rd_to_ro_buffer <= rd; // TODO: check whether rt = rs2
 
         // for reg file
-        rd_to_reg_file <= is_store ? 0 : rs2; // TODO: check whether rt = rs2
-        dest_to_reg_file <= is_store ? 0 : dest_from_ro_buffer; // TODO: check whether rt = rs2
+        rd_to_reg_file <= rd; // TODO: check whether rt = rs2
+        dest_to_reg_file <= rd; // TODO: check whether rt = rs2
 
         // for ls buffer
         dest_to_ls_buffer <= dest_from_ro_buffer;
