@@ -1,6 +1,6 @@
 // type
 `define REG_TYPE 31:0
-`define ADDR_TYPE 16:0
+`define ADDR_TYPE 17:0
 `define INST_TYPE 31:0
 `define CACHE_LINE_TYPE 127:0
 `define REG_ID_TYPE 4:0
@@ -28,7 +28,7 @@
 
 // sizes
 `define INST_CACHE_SIZE 256
-`define ADDR_WIDTH 16
+`define ADDR_WIDTH 18
 `define CACHE_INDEX_WIDTH 8
 `define CACHE_LINE_WIDTH 4
 `define RO_BUFFER_SIZE_MINUS_1 15

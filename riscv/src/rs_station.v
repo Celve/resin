@@ -103,7 +103,16 @@ module rs_station(
       !busy[16] ? 16 :
       0;
 
-  wire debug = !qj[1] && !qk[1] && busy[1];
+  wire[`REG_TYPE] pc1 = a[1];
+  wire[`REG_TYPE] vj1 = vj[1];
+  wire[`REG_TYPE] vk1 = vk[1];
+  wire[`RES_STATION_ID_TYPE] qk1 = qk[1];
+  wire[`RES_STATION_ID_TYPE] qj1 = qj[1];
+  wire[`REG_TYPE] pc2 = a[2];
+  wire[`REG_TYPE] vj2 = vj[2];
+  wire[`REG_TYPE] vk2 = vk[2];
+  wire[`RES_STATION_ID_TYPE] qk2 = qk[2];
+  wire[`RES_STATION_ID_TYPE] qj2 = qj[2];
 
   wire[`RES_STATION_ID_TYPE] exec_index =
       !qj[1] && !qk[1] && busy[1] ? 1 :
@@ -148,11 +157,11 @@ module rs_station(
     if (!is_any_reset) begin
       if (dest_from_lsb_bus) begin
         for (integer i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
-          if (qj[i] == dest_from_lsb_bus) begin
+          if (busy[i] && qj[i] == dest_from_lsb_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_lsb_bus;
           end
-          if (qk[i] == dest_from_lsb_bus) begin
+          if (busy[i] && qk[i] == dest_from_lsb_bus) begin
             qk[i] <= 0;
             vk[i] <= value_from_lsb_bus;
           end
@@ -209,10 +218,30 @@ module rs_station(
     if (!is_any_reset) begin
       if (dest_from_issuer) begin
         op[free_index] <= op_from_issuer;
-        qj[free_index] <= qj_from_issuer;
-        qk[free_index] <= qk_from_issuer;
-        vj[free_index] <= vj_from_issuer;
-        vk[free_index] <= vk_from_issuer;
+
+        // never forget to check this!!!
+        if (dest_from_rss_bus && qj_from_issuer == dest_from_rss_bus) begin
+          qj[free_index] <= 0;
+          vj[free_index] <= value_from_rss_bus;
+        end else if (dest_from_lsb_bus && qj_from_issuer == dest_from_lsb_bus) begin
+          qj[free_index] <= 0;
+          vj[free_index] <= value_from_lsb_bus;
+        end else begin
+          qj[free_index] <= qj_from_issuer;
+          vj[free_index] <= vj_from_issuer;
+        end
+
+        if (dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus) begin
+          qk[free_index] <= 0;
+          vk[free_index] <= value_from_rss_bus;
+        end else if (dest_from_lsb_bus && qk_from_issuer == dest_from_lsb_bus) begin
+          qk[free_index] <= 0;
+          vk[free_index] <= value_from_lsb_bus;
+        end else begin
+          qk[free_index] <= qk_from_issuer;
+          vk[free_index] <= vk_from_issuer;
+        end
+
         imm[free_index] <= imm_from_issuer;
         a[free_index] <= pc_from_issuer;
         dest[free_index] <= dest_from_issuer;

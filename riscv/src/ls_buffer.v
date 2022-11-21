@@ -84,6 +84,13 @@ module ls_buffer(
 
   reg[`LS_BUFFER_ID_TYPE] committed_store_cnt;
 
+  wire[`REG_TYPE] addr = vj[head];
+  wire[`REG_TYPE] read_value = {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]};
+  wire[`REG_TYPE] store_value = vk[head];
+  wire[`REG_TYPE] append = a[head];
+  wire[`REG_TYPE] desthead = dest[head];
+  wire[`REG_TYPE] ophead = op[head];
+
   sign_ext sign_ext_0(
              .is_sign(is_sign_to_sign_ext),
              .is_byte(is_byte_to_sign_ext),
@@ -153,10 +160,30 @@ module ls_buffer(
     if (!is_any_reset)
       if (dest_from_issuer) begin
         op[tail] <= op_from_issuer;
-        qj[tail] <= qj_from_issuer;
-        qk[tail] <= qk_from_issuer;
-        vj[tail] <= vj_from_issuer;
-        vk[tail] <= vk_from_issuer;
+
+        // never forget to check this!!!
+        if (dest_from_rss_bus && qj_from_issuer == dest_from_rss_bus) begin
+          qj[tail] <= 0;
+          vj[tail] <= value_from_rss_bus;
+        end else if (dest_from_lsb_bus && qj_from_issuer == dest_from_lsb_bus) begin
+          qj[tail] <= 0;
+          vj[tail] <= value_from_lsb_bus;
+        end else begin
+          qj[tail] <= qj_from_issuer;
+          vj[tail] <= vj_from_issuer;
+        end
+
+        if (dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus) begin
+          qk[tail] <= 0;
+          vk[tail] <= value_from_rss_bus;
+        end else if (dest_from_lsb_bus && qk_from_issuer == dest_from_lsb_bus) begin
+          qk[tail] <= 0;
+          vk[tail] <= value_from_lsb_bus;
+        end else begin
+          qk[tail] <= qk_from_issuer;
+          vk[tail] <= vk_from_issuer;
+        end
+
         a[tail] <= a_from_issuer;
         busy[tail] <= 1;
         dest[tail] <= dest_from_issuer;
@@ -166,7 +193,7 @@ module ls_buffer(
 
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      size <= size + (dest_from_issuer != 0) - (state == IDLE && size && !a[head] && hit && (op[head] < `SB_INST || committed_store_cnt || store_from_rob_bus));
+      size <= size + (dest_from_issuer != 0) - (state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && (op[head] < `SB_INST || committed_store_cnt || store_from_rob_bus));
     end
   end
 
@@ -220,7 +247,7 @@ module ls_buffer(
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      if (state == IDLE && size && !a[head] && hit && op[head] > `LHU_INST) begin
+      if (state == IDLE && size && !qj[head] && !qk[head] && !a[head] && hit && op[head] > `LHU_INST) begin
         if (committed_store_cnt) begin
           committed_store_cnt <= store_from_rob_bus ? committed_store_cnt : committed_store_cnt - 1;
         end
@@ -233,7 +260,7 @@ module ls_buffer(
   // fetch data
   always @(posedge clk) begin
     if (!is_any_reset) begin
-      if (state == IDLE && size && !a[head]) begin
+      if (state == IDLE && size && !qj[head] && !qk[head] && !a[head]) begin
         if (hit) begin
           if (op[head] < `SB_INST) begin
             case (op[head])
@@ -270,7 +297,7 @@ module ls_buffer(
               end
 
               `LHU_INST: begin
-                value_to_sign_ext <= cache_lines[index][offset];
+                value_to_sign_ext <= {cache_lines[index][offset + 1], cache_lines[index][offset]};
                 is_sign_to_sign_ext <= 0;
                 is_byte_to_sign_ext <= 0;
                 is_half_to_sign_ext <= 1;
@@ -335,8 +362,10 @@ module ls_buffer(
           end
         end
       end else if (state == WRITE) begin
-        valid_to_mem_ctrler <= 0;
-        state <= IDLE;
+        if (ready_from_mem_ctrler) begin
+          valid_to_mem_ctrler <= 0;
+          state <= IDLE;
+        end
       end else begin
         dest_to_lsb_bus <= 0;
         value_to_sign_ext <= 0;

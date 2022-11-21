@@ -62,10 +62,13 @@ module reg_file(
       if (!reset_from_rob_bus && dest_from_ro_buffer == status[rd_from_ro_buffer]) begin
         status[rd_from_ro_buffer] <= 0;
       end
-      values[rd_from_ro_buffer] <= value_from_ro_buffer;
+      if (rd_from_ro_buffer) begin
+        values[rd_from_ro_buffer] <= value_from_ro_buffer;
+      end
     end
   end
 
+  wire[`RO_BUFFER_ID_TYPE] status0 = status[0];
 
   assign qj_to_issuer =
          rd_from_issuer && rd_from_issuer == rs_from_issuer ? dest_from_issuer :
@@ -79,7 +82,8 @@ module reg_file(
 
   assign qk_to_issuer =
          rd_from_issuer && rd_from_issuer == rt_from_issuer ? dest_from_issuer :
-         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer ? 0 : status[rt_from_issuer];
+         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer ? 0 :
+         status[rt_from_issuer];
 
   assign vk_to_issuer =
          rd_from_issuer && rd_from_issuer == rt_from_issuer ? 0 :

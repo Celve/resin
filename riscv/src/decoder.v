@@ -126,8 +126,8 @@ module decoder(
           end
           3'b101: begin
             case (inst[31:25])
-              7'b0000000: op = `SLLI_INST;
-              7'b0100000: op = `SRLI_INST;
+              7'b0000000: op = `SRLI_INST;
+              7'b0100000: op = `SRAI_INST;
             endcase
             imm = inst[24:20];
           end

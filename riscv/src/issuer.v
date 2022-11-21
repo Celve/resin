@@ -122,7 +122,7 @@ module issuer(
 
         // for reg file
         rd_to_reg_file <= rd; // TODO: check whether rt = rs2
-        dest_to_reg_file <= rd; // TODO: check whether rt = rs2
+        dest_to_reg_file <= dest_from_ro_buffer; // TODO: check whether rt = rs2
 
         // for ls buffer
         dest_to_ls_buffer <= dest_from_ro_buffer;

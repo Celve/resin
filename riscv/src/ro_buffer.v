@@ -19,11 +19,11 @@ module ro_buffer(
     output wire[`RO_BUFFER_ID_TYPE] dest_to_issuer,
 
     // for issuer
-    input wire[`RO_BUFFER_ID_TYPE] qj_from_issuer,
+    input wire[`RO_BUFFER_ID_TYPE] qj_from_issuer, // FIXME: useless
     output wire valid_of_vj_to_issuer,
     output wire[`REG_TYPE] vj_to_issuer,
 
-    input wire[`RO_BUFFER_ID_TYPE] qk_from_issuer,
+    input wire[`RO_BUFFER_ID_TYPE] qk_from_issuer, // FIXME: useless
     output wire valid_of_vk_to_issuer,
     output wire[`REG_TYPE] vk_to_issuer,
 
@@ -64,10 +64,22 @@ module ro_buffer(
 
   wire[2:0] temp_signal = signal[2];
   wire[`REG_TYPE] temp_status = status[2];
+  wire[`REG_TYPE] pc4 = supposed_next_pc[4];
+  wire[`REG_TYPE] status6 = status[6];
+  wire[`REG_TYPE] pc6 = supposed_next_pc[6];
+  wire[`REG_TYPE] signal6 = signal[6];
+  wire[`REG_TYPE] value6 = value[6];
+  wire[`REG_TYPE] rd6 = rd6[6];
 
   assign is_ro_buffer_full = size >= `RO_BUFFER_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
+
+  assign valid_of_vj_to_issuer = status[qj_from_issuer]; // FIXME: pretreat values from bus
+  assign vj_to_issuer = value[qj_from_issuer];
+
+  assign valid_of_vk_to_issuer = status[qk_from_issuer];
+  assign vk_to_issuer = value[qk_from_issuer];
 
   always @(posedge clk) begin
     if (is_any_reset) begin
