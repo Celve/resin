@@ -20,6 +20,9 @@ module lsb_bus(
     output wire[`REG_TYPE] value_to_ro_buffer
   );
 
+  assign dest_to_issuer = dest_from_ls_buffer;
+  assign value_to_issuer = value_from_ls_buffer;
+
   assign dest_to_rs_station = dest_from_ls_buffer;
   assign value_to_rs_station = value_from_ls_buffer;
 

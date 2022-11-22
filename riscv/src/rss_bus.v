@@ -22,6 +22,9 @@ module rss_bus(
     output wire[`REG_TYPE] next_pc_to_ro_buffer
   );
 
+  assign dest_to_issuer = dest_from_rs_station;
+  assign value_to_issuer = value_from_rs_station;
+
   assign dest_to_rs_station = dest_from_rs_station;
   assign value_to_rs_station = value_from_rs_station;
 

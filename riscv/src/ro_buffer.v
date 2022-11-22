@@ -79,11 +79,11 @@ module ro_buffer(
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
 
-  assign valid_of_vj_to_issuer = status[qj_from_issuer]; // FIXME: pretreat values from bus
-  assign vj_to_issuer = value[qj_from_issuer];
+  assign valid_of_vj_to_issuer = !qj_from_issuer ? 0 : status[qj_from_issuer]; // FIXME: pretreat values from bus
+  assign vj_to_issuer = !qj_from_issuer ? 0 : value[qj_from_issuer];
 
-  assign valid_of_vk_to_issuer = status[qk_from_issuer];
-  assign vk_to_issuer = value[qk_from_issuer];
+  assign valid_of_vk_to_issuer = !qk_from_issuer ? 0 : status[qk_from_issuer];
+  assign vk_to_issuer = !qk_from_issuer ? 0 : value[qk_from_issuer];
 
   always @(posedge clk) begin
     if (is_any_reset) begin
