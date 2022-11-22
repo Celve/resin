@@ -1,3 +1,5 @@
+LDFLAGS = -march=rv32imac -mabi=ilp32
+
 prefix = $(shell pwd)
 # Folder Path
 src = $(prefix)/src
@@ -22,10 +24,10 @@ build_sim:
 	@cd $(src) && iverilog -I $(src) -o $(testspace)/test $(sim)/testbench.v $(src)/common/block_ram/*.v $(src)/common/fifo/*.v $(src)/common/uart/*.v $(src)/*.v $(src)/*.vh
 
 build_sim_test: _no_testcase_name_check
-	@riscv64-unknown-elf-as -o $(sys)/rom.o -march=rv32i $(sys)/rom.s
+	@riscv64-unknown-elf-as -o $(sys)/rom.o -march=rv32i -mabi=ilp32 $(sys)/rom.s
 	@cp $(sim_testcase)/*$(name)*.c $(testspace)/test.c
 	@$(riscv_bin)/riscv64-unknown-elf-gcc -o $(testspace)/test.o -I $(sys) -c $(testspace)/test.c -O2 -march=rv32i -mabi=ilp32 -Wall
-	@$(riscv_bin)/riscv64-unknown-elf-ld -m elf32lriscv -T $(sys)/memory.ld $(sys)/rom.o $(testspace)/test.o -L $(riscv_toolchain)/riscv64-unknown-elf/lib/ -L $(riscv_toolchain)/lib/gcc/riscv64-unknown-elf/12.2.0/rv32i/ilp32 -lc -lgcc -lm -lnosys -o $(testspace)/test.om
+	@$(riscv_bin)/riscv64-unknown-elf-ld -m elf32lriscv -T $(sys)/memory.ld $(sys)/rom.o $(testspace)/test.o -L $(riscv_toolchain)/riscv64-unknown-elf/lib/rv32i/ilp32 -L $(riscv_toolchain)/lib/gcc/riscv64-unknown-elf/12.2.0/rv32i/ilp32 -lc -lgcc -lm -lnosys -o $(testspace)/test.om
 	@$(riscv_bin)/riscv64-unknown-elf-objcopy -O verilog $(testspace)/test.om $(testspace)/test.data
 	@$(riscv_bin)/riscv64-unknown-elf-objdump -D $(testspace)/test.om > $(testspace)/test.dump
 
