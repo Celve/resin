@@ -445,8 +445,9 @@ module new_ls_buffer(
     if (!rst && !reset_from_rob_bus) begin
       if (store_from_rob_bus) begin
         for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
-          if (busy[i] && busy[i] && dest[i] == store_from_rob_bus) begin
+          if (busy[i] && dest[i] == store_from_rob_bus) begin
             committed_tail <= i;
+            dest[i] <= 0;
           end
         end
       end else if ((state == IDLE && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && ready_from_mem_ctrler_to_io)) begin
