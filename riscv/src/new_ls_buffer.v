@@ -17,6 +17,7 @@ module new_ls_buffer(
     input wire[`REG_TYPE] vj_from_issuer,
     input wire[`REG_TYPE] vk_from_issuer,
     input wire[`IMM_TYPE] a_from_issuer,
+    input wire[`REG_TYPE] pc_from_issuer,
 
     // for ls buffer
     input wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus,
@@ -67,7 +68,8 @@ module new_ls_buffer(
   reg[`REG_TYPE] vk[`LOAD_STORE_BUFFER_TYPE];
   reg[`REG_TYPE] a[`LOAD_STORE_BUFFER_TYPE];
   reg busy[`LOAD_STORE_BUFFER_TYPE];
-  reg[`RO_BUFFER_ID_TYPE] dest[`RESERVATION_STATION_TYPE];
+  reg[`RO_BUFFER_ID_TYPE] dest[`LOAD_STORE_BUFFER_TYPE];
+  reg[`REG_TYPE] pc[`LOAD_STORE_BUFFER_TYPE];
 
   // cache
   reg[`CACHE_TAG_TYPE] cache_tags[`INST_CACHE_SIZE - 1:0];
@@ -141,6 +143,14 @@ module new_ls_buffer(
       !qj[15] && a[15] && busy[15] ? 15 :
       !qj[16] && a[16] && busy[16] ? 16 :
       0;
+
+  // debug
+  wire[`OP_TYPE] op_head = op[head];
+  wire[`REG_TYPE] qj_head = qj[head];
+  wire[`REG_TYPE] vj_head = vj[head];
+  wire[`REG_TYPE] qk_head = qk[head];
+  wire[`REG_TYPE] vk_head = vk[head];
+  wire[`REG_TYPE] pc_head = pc[head];
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
@@ -458,6 +468,7 @@ module new_ls_buffer(
         a[tail] <= a_from_issuer;
         busy[tail] <= 1;
         dest[tail] <= dest_from_issuer;
+        pc[tail] <= pc_from_issuer;
         tail <= tail == `LOAD_STORE_BUFFER_SIZE ? 1 : tail + 1;
       end
   end

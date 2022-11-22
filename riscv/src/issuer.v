@@ -70,6 +70,7 @@ module issuer(
     output reg[`REG_TYPE] vj_to_ls_buffer,
     output reg[`REG_TYPE] vk_to_ls_buffer,
     output reg[`IMM_TYPE] a_to_ls_buffer,
+    output reg[`REG_TYPE] pc_to_ls_buffer,
 
     input wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus,
     input wire[`REG_TYPE] value_from_lsb_bus
@@ -129,6 +130,7 @@ module issuer(
         dest_to_rs_station <= 0;
         op_to_ls_buffer <= op;
         a_to_ls_buffer <= imm;
+        pc_to_ls_buffer <= pc_from_inst_fetcher;
 
         // it might be busy, therefore check ro buffer
         if (qj_from_reg_file && valid_of_vj_from_ro_buffer) begin
