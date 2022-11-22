@@ -118,6 +118,10 @@ module new_ls_buffer(
       `LOAD_STORE_BUFFER_SIZE - head + committed_tail;
   reg[`LS_BUFFER_ID_TYPE] committed_tail;
 
+  // io buffer
+  reg ready_from_io_buffer;
+  reg[`BYTE_TYPE] byte_from_io_buffer;
+
   // find the one to calculate address
   wire[`LS_BUFFER_ID_TYPE] calc =
       !qj[1] && a[1] && busy[1] ? 1 :
@@ -140,6 +144,11 @@ module new_ls_buffer(
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
+      if (ready_from_mem_ctrler_to_io) begin
+        ready_from_io_buffer <= 1;
+        byte_from_io_buffer <= byte_from_mem_ctrler_to_io;
+        valid_from_io_to_mem_ctrler <= 0;
+      end
       if (committed_tail) begin
         tail <= committed_tail == `LOAD_STORE_BUFFER_SIZE ? 1 : committed_tail + 1;
         size <= committed_tail_offset + 1;
@@ -187,6 +196,8 @@ module new_ls_buffer(
       dest_to_lsb_bus <= 0;
       value_to_sign_ext <= 0;
       if (rst) begin
+        ready_from_io_buffer <= 0;
+
         head <= 1;
         tail <= 1;
         size <= 0;
@@ -299,7 +310,7 @@ module new_ls_buffer(
         end
 
         WRITE: begin
-          if (ready_from_mem_ctrler) begin
+          if (ready_from_mem_ctrler) begin // FIXME: fix like the previous one
             valid_to_mem_ctrler <= 0;
             state <= IDLE;
           end
@@ -309,6 +320,9 @@ module new_ls_buffer(
           if (ready_from_mem_ctrler_to_io) begin
             state <= IDLE;
             valid_from_io_to_mem_ctrler <= 0;
+          end else if (ready_from_io_buffer) begin
+            state <= IDLE;
+            ready_from_io_buffer <= 0;
           end
         end
 
@@ -316,6 +330,9 @@ module new_ls_buffer(
           if (ready_from_mem_ctrler_to_io) begin
             state <= IDLE;
             valid_from_io_to_mem_ctrler <= 0;
+          end else if (ready_from_io_buffer) begin
+            state <= IDLE;
+            ready_from_io_buffer <= 0;
           end
         end
       endcase
@@ -336,7 +353,7 @@ module new_ls_buffer(
         end
 
         READ_IO, WRITE_IO: begin
-          if (ready_from_mem_ctrler_to_io) begin
+          if (ready_from_mem_ctrler_to_io || ready_from_io_buffer) begin
             busy[head] <= 0;
             head <= next_head;
           end
@@ -361,8 +378,8 @@ module new_ls_buffer(
         is_half_to_sign_ext <= op[head] == `LH_INST || op[head] == `LHU_INST;
         is_word_to_sign_ext <= op[head] == `LW_INST;
         dest_to_lsb_bus <= dest[head];
-      end else if (state == READ_IO && ready_from_mem_ctrler_to_io) begin
-        value_to_sign_ext <= byte_from_io_to_mem_ctrler;
+      end else if (state == READ_IO && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)) begin
+        value_to_sign_ext <= ready_from_mem_ctrler_to_io ? byte_from_mem_ctrler_to_io : byte_from_io_buffer;
         is_sign_to_sign_ext <= 1;
         is_byte_to_sign_ext <= 1;
         is_half_to_sign_ext <= 0;
@@ -450,7 +467,7 @@ module new_ls_buffer(
     if (!rst && !reset_from_rob_bus) begin
       size <= size
            + (dest_from_issuer != 0)
-           - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && ready_from_mem_ctrler_to_io));
+           - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)));
     end
   end
 
@@ -464,7 +481,7 @@ module new_ls_buffer(
             dest[i] <= 0;
           end
         end
-      end else if ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && ready_from_mem_ctrler_to_io)) begin
+      end else if ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer))) begin
         if (committed_tail == head) begin
           committed_tail <= 0;
         end
