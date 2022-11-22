@@ -302,19 +302,24 @@ module new_ls_buffer(
 
         READ: begin
           if (ready_from_mem_ctrler) begin
-            cache_lines[index] <= cache_line_from_mem_ctrler;
-            cache_tags[index] <= tag;
-            cache_valid_bits[index] <= 1;
-
-            if (cache_dirty_bits[index]) begin
-              state <= WRITE;
-              cache_dirty_bits[index] <= 0;
-              rw_flag_to_mem_ctrler <= 1;
-              addr_to_mem_ctrler <= index << `CACHE_LINE_WIDTH;
-              cache_line_to_mem_ctrler <= cache_lines[index];
-            end else begin
+            if (addr_to_mem_ctrler != vj[head]) begin
               state <= IDLE;
               valid_to_mem_ctrler <= 0;
+            end else begin
+              cache_lines[index] <= cache_line_from_mem_ctrler;
+              cache_tags[index] <= tag;
+              cache_valid_bits[index] <= 1;
+
+              if (cache_dirty_bits[index]) begin
+                state <= WRITE;
+                cache_dirty_bits[index] <= 0;
+                rw_flag_to_mem_ctrler <= 1;
+                addr_to_mem_ctrler <= index << `CACHE_LINE_WIDTH;
+                cache_line_to_mem_ctrler <= cache_lines[index];
+              end else begin
+                state <= IDLE;
+                valid_to_mem_ctrler <= 0;
+              end
             end
           end
         end
