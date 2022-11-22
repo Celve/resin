@@ -51,19 +51,21 @@ module reg_file(
   end
 
   always @(posedge clk) begin
-    if (!is_any_reset) begin
-      // if (rd_from_ro_buffer && rd_from_issuer && rd_from_ro_buffer == rd_from_issuer) begin // can never happen
-      if (rd_from_issuer) begin
-        status[rd_from_issuer] <= dest_from_issuer;
-      end
-    end
-
-    if (!rst && dest_from_ro_buffer) begin
-      if (!reset_from_rob_bus && dest_from_ro_buffer == status[rd_from_ro_buffer]) begin
-        status[rd_from_ro_buffer] <= 0;
-      end
-      if (rd_from_ro_buffer) begin
+    if (!rst) begin
+      if (!reset_from_rob_bus && rd_from_ro_buffer && rd_from_issuer && rd_from_ro_buffer == rd_from_issuer) begin
         values[rd_from_ro_buffer] <= value_from_ro_buffer;
+        status[rd_from_issuer] <= dest_from_issuer;
+      end else begin
+        if (!reset_from_rob_bus && rd_from_issuer) begin
+          status[rd_from_issuer] <= dest_from_issuer;
+        end
+
+        if (!reset_from_rob_bus && dest_from_ro_buffer == status[rd_from_ro_buffer]) begin
+          status[rd_from_ro_buffer] <= 0;
+        end
+        if (rd_from_ro_buffer) begin
+          values[rd_from_ro_buffer] <= value_from_ro_buffer;
+        end
       end
     end
   end
@@ -72,22 +74,22 @@ module reg_file(
 
   assign qj_to_issuer =
          rd_from_issuer && rd_from_issuer == rs_from_issuer ? dest_from_issuer :
-         rd_from_ro_buffer && rd_from_ro_buffer == rs_from_issuer && status[dest_from_ro_buffer] == dest_from_ro_buffer ? 0 : status[rs_from_issuer];
+         rd_from_ro_buffer && rd_from_ro_buffer == rs_from_issuer && status[rd_from_ro_buffer] == dest_from_ro_buffer ? 0 : status[rs_from_issuer];
 
   assign vj_to_issuer =
          rd_from_issuer && rd_from_issuer == rs_from_issuer ? 0 :
-         rd_from_ro_buffer && rd_from_ro_buffer == rs_from_issuer && status[dest_from_ro_buffer] == dest_from_ro_buffer ? value_from_ro_buffer :
+         rd_from_ro_buffer && rd_from_ro_buffer == rs_from_issuer && status[rd_from_ro_buffer] == dest_from_ro_buffer ? value_from_ro_buffer :
          status[rs_from_issuer] ? 0 :
          values[rs_from_issuer];
 
   assign qk_to_issuer =
          rd_from_issuer && rd_from_issuer == rt_from_issuer ? dest_from_issuer :
-         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer && status[dest_from_ro_buffer] == dest_from_ro_buffer ? 0 :
+         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer && status[rd_from_ro_buffer] == dest_from_ro_buffer ? 0 :
          status[rt_from_issuer];
 
   assign vk_to_issuer =
          rd_from_issuer && rd_from_issuer == rt_from_issuer ? 0 :
-         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer && status[dest_from_ro_buffer] == dest_from_ro_buffer ? value_from_ro_buffer :
+         rd_from_ro_buffer && rd_from_ro_buffer == rt_from_issuer && status[rd_from_ro_buffer] == dest_from_ro_buffer ? value_from_ro_buffer :
          status[rt_from_issuer] ? 0 :
          values[rt_from_issuer];
 
