@@ -6,13 +6,13 @@
 module rob_bus(
     input wire reset_from_ro_buffer,
     input wire[`REG_TYPE] pc_from_ro_buffer,
-    input wire[`LS_BUFFER_ID_TYPE] store_from_ro_buffer,
+    input wire[`LS_BUFFER_ID_TYPE] dest_from_ro_buffer,
 
     output wire reset_to_inst_fetcher,
     output wire[`REG_TYPE] pc_to_inst_fetcher,
 
     output wire reset_to_ls_buffer,
-    output wire[`LS_BUFFER_ID_TYPE] store_to_ls_buffer,
+    output wire[`LS_BUFFER_ID_TYPE] dest_to_ls_buffer,
 
     output wire reset_to_issuer,
     output wire reset_to_rs_station,
@@ -24,7 +24,7 @@ module rob_bus(
   assign pc_to_inst_fetcher = pc_from_ro_buffer;
 
   assign reset_to_ls_buffer = reset_from_ro_buffer;
-  assign store_to_ls_buffer = store_from_ro_buffer;
+  assign dest_to_ls_buffer = dest_from_ro_buffer;
 
   assign reset_to_issuer = reset_from_ro_buffer;
   assign reset_to_rs_station = reset_from_ro_buffer;

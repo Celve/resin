@@ -81,7 +81,6 @@ module mem_ctrler (
       end
 
       if (ready_to_dcache || ready_to_icache || ready_to_io) begin
-        rw_select_to_ram <= 0;
         ready_to_icache <= 0;
         ready_to_dcache <= 0;
         ready_to_io <= 0;

@@ -70,8 +70,6 @@ module reg_file(
     end
   end
 
-  wire[`RO_BUFFER_ID_TYPE] status0 = status[0];
-
   assign qj_to_issuer =
          rd_from_issuer && rd_from_issuer == rs_from_issuer ? dest_from_issuer :
          rd_from_ro_buffer && rd_from_ro_buffer == rs_from_issuer && status[rd_from_ro_buffer] == dest_from_ro_buffer ? 0 : status[rs_from_issuer];

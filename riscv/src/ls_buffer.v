@@ -68,10 +68,10 @@ module ls_buffer(
   reg busy[`LOAD_STORE_BUFFER_TYPE];
   reg[`RO_BUFFER_ID_TYPE] dest[`RESERVATION_STATION_TYPE];
 
-  reg[`CACHE_TAG_TYPE] cache_tags[`INST_CACHE_SIZE - 1:0];
-  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`INST_CACHE_SIZE - 1:0];
-  reg cache_valid_bits[`INST_CACHE_SIZE - 1:0];
-  reg cache_dirty_bits[`INST_CACHE_SIZE - 1:0];
+  reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
+  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
+  reg cache_valid_bits[`CACHE_SIZE - 1:0];
+  reg cache_dirty_bits[`CACHE_SIZE - 1:0];
 
   reg[`LS_BUFFER_ID_TYPE] head;
   reg[`LS_BUFFER_ID_TYPE] tail;
@@ -156,7 +156,7 @@ module ls_buffer(
       value_to_sign_ext <= 0;
       if (rst) begin
         committed_store_cnt <= 0;
-        for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
+        for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
           cache_valid_bits[i] <= 0;
           cache_tags[i] <= 0;
           cache_lines[i] <= 0;

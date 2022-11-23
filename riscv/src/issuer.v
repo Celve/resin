@@ -114,6 +114,7 @@ module issuer(
     if (!rst && !reset_from_rob_bus && ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE
+                          : is_load_or_store ? `ISSUER_TO_ROB_SIGNAL_LOAD
                           : is_branch ? `ISSUER_TO_ROB_SIGNAL_BRANCH : `ISSUER_TO_ROB_SIGNAL_NORMAL;
       next_pc_to_ro_buffer <= next_pc_from_inst_fetcher;
 

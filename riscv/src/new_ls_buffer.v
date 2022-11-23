@@ -29,7 +29,7 @@ module new_ls_buffer(
 
     // for rob bus
     input wire reset_from_rob_bus,
-    input wire[`RO_BUFFER_ID_TYPE] store_from_rob_bus, // I need to record which is the last one
+    input wire[`RO_BUFFER_ID_TYPE] dest_from_rob_bus, // I need to record which is the last one
 
     // for lsb bus
     output reg[`RO_BUFFER_ID_TYPE] dest_to_lsb_bus, // TODO: still need to design more dedicate
@@ -72,10 +72,10 @@ module new_ls_buffer(
   reg[`REG_TYPE] pc[`LOAD_STORE_BUFFER_TYPE];
 
   // cache
-  reg[`CACHE_TAG_TYPE] cache_tags[`INST_CACHE_SIZE - 1:0];
-  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`INST_CACHE_SIZE - 1:0];
-  reg cache_valid_bits[`INST_CACHE_SIZE - 1:0];
-  reg cache_dirty_bits[`INST_CACHE_SIZE - 1:0];
+  reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
+  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
+  reg cache_valid_bits[`CACHE_SIZE - 1:0];
+  reg cache_dirty_bits[`CACHE_SIZE - 1:0];
 
   wire[`CACHE_TAG_TYPE] tag = vj[head][`CACHE_TAG_RANGE];
   wire[`CACHE_INDEX_TYPE] index = vj[head][`CACHE_INDEX_RANGE];
@@ -112,7 +112,7 @@ module new_ls_buffer(
   wire is_head_io_signal = vj[head] >= `IO_THRESHOLD;
   wire is_head_executable = size && !qj[head] && !qk[head] && !a[head];
   wire is_head_store = op[head] > `LHU_INST;
-  wire is_head_storable = committed_tail != 0;
+  wire is_head_committed = committed_tail != 0;
 
   wire[`LS_BUFFER_ID_TYPE] committed_tail_offset =
       !committed_tail ? 0 :
@@ -123,6 +123,10 @@ module new_ls_buffer(
   // io buffer
   reg ready_from_io_buffer;
   reg[`BYTE_TYPE] byte_from_io_buffer;
+
+  // cache buffer
+  reg ready_from_cache_buffer;
+  reg[`CACHE_LINE_TYPE] cache_line_from_cache_buffer;
 
   // find the one to calculate address
   wire[`LS_BUFFER_ID_TYPE] calc =
@@ -151,6 +155,7 @@ module new_ls_buffer(
   wire[`REG_TYPE] qk_head = qk[head];
   wire[`REG_TYPE] vk_head = vk[head];
   wire[`REG_TYPE] pc_head = pc[head];
+  wire[`REG_TYPE] send_addr = (tag << `CACHE_INDEX_AND_LINE_WIDTH) | (index << `CACHE_LINE_WIDTH);
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
@@ -158,6 +163,11 @@ module new_ls_buffer(
         ready_from_io_buffer <= 1;
         byte_from_io_buffer <= byte_from_mem_ctrler_to_io;
         valid_from_io_to_mem_ctrler <= 0;
+      end
+      if (ready_from_mem_ctrler) begin
+        ready_from_cache_buffer <= 1;
+        cache_line_from_cache_buffer <= cache_line_from_mem_ctrler;
+        valid_to_mem_ctrler <= 0;
       end
       if (committed_tail) begin
         tail <= committed_tail == `LOAD_STORE_BUFFER_SIZE ? 1 : committed_tail + 1;
@@ -207,6 +217,7 @@ module new_ls_buffer(
       value_to_sign_ext <= 0;
       if (rst) begin
         ready_from_io_buffer <= 0;
+        ready_from_cache_buffer <= 0;
 
         head <= 1;
         tail <= 1;
@@ -223,7 +234,7 @@ module new_ls_buffer(
           busy[i] <= 0;
           dest[i] <= 0;
         end
-        for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
+        for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
           cache_valid_bits[i] <= 0;
           cache_tags[i] <= 0;
           cache_lines[i] <= 0;
@@ -251,7 +262,7 @@ module new_ls_buffer(
           if (is_head_executable) begin
             if (is_head_io_signal) begin // it could only be lb or sb
               if (is_head_store) begin
-                if (is_head_storable) begin
+                if (is_head_committed) begin
                   state <= WRITE_IO;
                   valid_from_io_to_mem_ctrler <= 1;
                   rw_flag_from_io_to_mem_ctrler <= 1;
@@ -259,15 +270,17 @@ module new_ls_buffer(
                   byte_from_io_to_mem_ctrler <= vk[head];
                 end
               end else begin
-                state <= READ_IO;
-                valid_from_io_to_mem_ctrler <= 1;
-                rw_flag_from_io_to_mem_ctrler <= 0;
-                addr_from_io_to_mem_ctrler <= vj[head];
+                if (is_head_committed) begin
+                  state <= READ_IO;
+                  valid_from_io_to_mem_ctrler <= 1;
+                  rw_flag_from_io_to_mem_ctrler <= 0;
+                  addr_from_io_to_mem_ctrler <= vj[head];
+                end
               end
             end else begin
               if (hit) begin
                 if (is_head_store) begin
-                  if (is_head_storable) begin
+                  if (is_head_committed) begin
                     case(op[head])
                       `SB_INST: begin
                         cache_lines[index][offset] <= vk[head][7:0];
@@ -301,12 +314,16 @@ module new_ls_buffer(
         end
 
         READ: begin
-          if (ready_from_mem_ctrler) begin
+          if (ready_from_mem_ctrler || ready_from_cache_buffer) begin
             if (addr_to_mem_ctrler != vj[head]) begin
               state <= IDLE;
-              valid_to_mem_ctrler <= 0;
+              if (ready_from_mem_ctrler) begin
+                valid_to_mem_ctrler <= 0;
+              end else begin
+                ready_from_cache_buffer <= 0;
+              end
             end else begin
-              cache_lines[index] <= cache_line_from_mem_ctrler;
+              cache_lines[index] <= ready_from_mem_ctrler ? cache_line_from_mem_ctrler : cache_line_from_cache_buffer;
               cache_tags[index] <= tag;
               cache_valid_bits[index] <= 1;
 
@@ -314,11 +331,19 @@ module new_ls_buffer(
                 state <= WRITE;
                 cache_dirty_bits[index] <= 0;
                 rw_flag_to_mem_ctrler <= 1;
-                addr_to_mem_ctrler <= index << `CACHE_LINE_WIDTH;
+                addr_to_mem_ctrler <= (cache_tags[index] << `CACHE_INDEX_AND_LINE_WIDTH) | (index << `CACHE_LINE_WIDTH);
                 cache_line_to_mem_ctrler <= cache_lines[index];
+                if (ready_from_cache_buffer) begin
+                  valid_to_mem_ctrler <= 1;
+                  ready_from_cache_buffer <= 0;
+                end
               end else begin
                 state <= IDLE;
-                valid_to_mem_ctrler <= 0;
+                if (ready_from_mem_ctrler) begin
+                  valid_to_mem_ctrler <= 0;
+                end else begin
+                  ready_from_cache_buffer <= 0;
+                end
               end
             end
           end
@@ -326,8 +351,11 @@ module new_ls_buffer(
 
         WRITE: begin
           if (ready_from_mem_ctrler) begin // FIXME: fix like the previous one
-            valid_to_mem_ctrler <= 0;
             state <= IDLE;
+            valid_to_mem_ctrler <= 0;
+          end else if (ready_from_cache_buffer) begin
+            state <= IDLE;
+            ready_from_cache_buffer <= 0;
           end
         end
 
@@ -360,7 +388,7 @@ module new_ls_buffer(
       case (state)
         IDLE: begin
           if (is_head_executable && !is_head_io_signal && hit) begin
-            if (!is_head_store || is_head_storable) begin
+            if (!is_head_store || is_head_committed) begin
               busy[head] <= 0;
               head <= next_head;
             end
@@ -483,21 +511,21 @@ module new_ls_buffer(
     if (!rst && !reset_from_rob_bus) begin
       size <= size
            + (dest_from_issuer != 0)
-           - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)));
+           - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_committed)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)));
     end
   end
 
   // update committed_store_cnt
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus) begin
-      if (store_from_rob_bus) begin
+      if (dest_from_rob_bus) begin
         for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
-          if (busy[i] && dest[i] == store_from_rob_bus) begin
+          if (busy[i] && dest[i] == dest_from_rob_bus) begin
             committed_tail <= i;
             dest[i] <= 0;
           end
         end
-      end else if ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_storable)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer))) begin
+      end else if ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_committed)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer))) begin
         if (committed_tail == head) begin
           committed_tail <= 0;
         end

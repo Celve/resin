@@ -31,9 +31,9 @@ module inst_fetcher(
   parameter[2:0] INTERACTING = 1; // instruction fetcher is interacting with memory management unit
   parameter[2:0] PENDING = 2; // instruction fetcher find out that the next instruction hits, however, the previous one is still in the memory management unit
 
-  reg[`CACHE_TAG_TYPE] cache_tags[`INST_CACHE_SIZE - 1:0];
-  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`INST_CACHE_SIZE - 1:0];
-  reg cache_valid_bits[`INST_CACHE_SIZE - 1:0];
+  reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
+  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
+  reg cache_valid_bits[`CACHE_SIZE - 1:0];
   reg[2:0] state;
   reg[`REG_TYPE] pc; // means fetched
   reg[`REG_TYPE] next_pc; // means next fetched
@@ -60,7 +60,7 @@ module inst_fetcher(
       state <= IDLE;
       pc <= 0;
       next_pc <= 4;
-      for (integer i = 0; i < `INST_CACHE_SIZE; i = i + 1) begin
+      for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
         cache_lines[i] <= 0;
