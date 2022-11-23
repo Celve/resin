@@ -79,11 +79,33 @@ module ro_buffer(
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
 
-  assign valid_of_vj_to_issuer = !qj_from_issuer ? 0 : status[qj_from_issuer]; // FIXME: pretreat values from bus
-  assign vj_to_issuer = !qj_from_issuer ? 0 : value[qj_from_issuer];
+  assign valid_of_vj_to_issuer =
+         !qj_from_issuer ? 0 :
+         status[qj_from_issuer] ? 1 :
+         dest_from_lsb_bus && qj_from_issuer == dest_from_lsb_bus ? 1 :
+         dest_from_rss_bus && qj_from_issuer == dest_from_rss_bus ? 1 :
+         0;
 
-  assign valid_of_vk_to_issuer = !qk_from_issuer ? 0 : status[qk_from_issuer];
-  assign vk_to_issuer = !qk_from_issuer ? 0 : value[qk_from_issuer];
+  assign vj_to_issuer =
+         !qj_from_issuer ? 0 :
+         status[qj_from_issuer] ? value[qj_from_issuer] :
+         dest_from_lsb_bus && qj_from_issuer == dest_from_lsb_bus ? value_from_lsb_bus :
+         dest_from_rss_bus && qj_from_issuer == dest_from_rss_bus ? value_from_rss_bus :
+         0;
+
+  assign valid_of_vk_to_issuer =
+         !qk_from_issuer ? 0 :
+         status[qk_from_issuer] ? 1 :
+         dest_from_lsb_bus && qk_from_issuer == dest_from_lsb_bus ? 1 :
+         dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus ? 1 :
+         0;
+
+  assign vk_to_issuer =
+         !qk_from_issuer ? 0 :
+         status[qk_from_issuer] ? value[qk_from_issuer] :
+         dest_from_lsb_bus && qk_from_issuer == dest_from_lsb_bus ? value_from_lsb_bus :
+         dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus ? value_from_rss_bus :
+         0;
 
   always @(posedge clk) begin
     if (is_any_reset) begin

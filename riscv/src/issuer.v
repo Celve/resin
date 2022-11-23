@@ -59,9 +59,6 @@ module issuer(
     output reg[`IMM_TYPE] imm_to_rs_station,
     output reg[`REG_TYPE] pc_to_rs_station,
 
-    input wire[`RO_BUFFER_ID_TYPE] dest_from_rss_bus,
-    input wire[`REG_TYPE] value_from_rss_bus,
-
     // for load store buffer
     output reg[`RO_BUFFER_ID_TYPE] dest_to_ls_buffer,
     output reg[`OP_TYPE] op_to_ls_buffer,
@@ -70,10 +67,7 @@ module issuer(
     output reg[`REG_TYPE] vj_to_ls_buffer,
     output reg[`REG_TYPE] vk_to_ls_buffer,
     output reg[`IMM_TYPE] a_to_ls_buffer,
-    output reg[`REG_TYPE] pc_to_ls_buffer,
-
-    input wire[`RO_BUFFER_ID_TYPE] dest_from_lsb_bus,
-    input wire[`REG_TYPE] value_from_lsb_bus
+    output reg[`REG_TYPE] pc_to_ls_buffer
   );
 
   wire[`OP_TYPE] op;
@@ -137,12 +131,6 @@ module issuer(
         if (qj_from_reg_file && valid_of_vj_from_ro_buffer) begin
           qj_to_ls_buffer <= 0;
           vj_to_ls_buffer <= vj_from_ro_buffer;
-        end else if (qj_from_reg_file && dest_from_rss_bus == qj_from_reg_file) begin
-          qj_to_ls_buffer <= 0;
-          vj_to_ls_buffer <= value_from_rss_bus;
-        end else if (qj_from_reg_file && dest_from_lsb_bus == qj_from_reg_file) begin
-          qj_to_ls_buffer <= 0;
-          vj_to_ls_buffer <= value_from_lsb_bus;
         end else begin
           qj_to_ls_buffer <= qj_from_reg_file;
           vj_to_ls_buffer <= vj_from_reg_file;
@@ -151,12 +139,6 @@ module issuer(
         if (qk_from_reg_file && valid_of_vk_from_ro_buffer) begin
           qk_to_ls_buffer <= 0;
           vk_to_ls_buffer <= vk_from_ro_buffer;
-        end else if (qk_from_reg_file && dest_from_rss_bus == qk_from_reg_file) begin
-          qk_to_ls_buffer <= 0;
-          vk_to_ls_buffer <= value_from_rss_bus;
-        end else if (qk_from_reg_file && dest_from_lsb_bus == qk_from_reg_file) begin
-          qk_to_ls_buffer <= 0;
-          vk_to_ls_buffer <= value_from_lsb_bus;
         end else begin
           qk_to_ls_buffer <= qk_from_reg_file;
           vk_to_ls_buffer <= vk_from_reg_file;
@@ -180,12 +162,6 @@ module issuer(
         if (qj_from_reg_file && valid_of_vj_from_ro_buffer) begin
           qj_to_rs_station <= 0;
           vj_to_rs_station <= vj_from_ro_buffer;
-        end else if (qj_from_reg_file && dest_from_rss_bus == qj_from_reg_file) begin
-          qj_to_rs_station <= 0;
-          vj_to_rs_station <= value_from_rss_bus;
-        end else if (qj_from_reg_file && dest_from_lsb_bus == qj_from_reg_file) begin
-          qj_to_rs_station <= 0;
-          vj_to_rs_station <= value_from_lsb_bus;
         end else begin
           qj_to_rs_station <= qj_from_reg_file;
           vj_to_rs_station <= vj_from_reg_file;
@@ -194,12 +170,6 @@ module issuer(
         if (qk_from_reg_file && valid_of_vk_from_ro_buffer) begin
           qk_to_rs_station <= 0;
           vk_to_rs_station <= vk_from_ro_buffer;
-        end else if (qk_from_reg_file && dest_from_rss_bus == qk_from_reg_file) begin
-          qk_to_rs_station <= 0;
-          vk_to_rs_station <= value_from_rss_bus;
-        end else if (qk_from_reg_file && dest_from_lsb_bus == qk_from_reg_file) begin
-          qk_to_rs_station <= 0;
-          vk_to_rs_station <= value_from_lsb_bus;
         end else begin
           qk_to_rs_station <= qk_from_reg_file;
           vk_to_rs_station <= vk_from_reg_file;

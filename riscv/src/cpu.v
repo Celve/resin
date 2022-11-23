@@ -337,9 +337,6 @@ module cpu(input wire clk_in,              // system clock signal
            .imm_to_rs_station(imm_from_issuer_to_rs_station),
            .pc_to_rs_station(pc_from_issuer_to_rs_station),
 
-           .dest_from_rss_bus(dest_from_rss_bus_to_issuer),
-           .value_from_rss_bus(value_from_rss_bus_to_issuer),
-
            .dest_to_ls_buffer(dest_from_issuer_to_ls_buffer),
            .op_to_ls_buffer(op_from_issuer_to_ls_buffer),
            .qj_to_ls_buffer(qj_from_issuer_to_ls_buffer),
@@ -348,9 +345,6 @@ module cpu(input wire clk_in,              // system clock signal
            .vk_to_ls_buffer(vk_from_issuer_to_ls_buffer),
            .a_to_ls_buffer(a_from_issuer_to_ls_buffer),
            .pc_to_ls_buffer(pc_from_issuer_to_ls_buffer),
-
-           .dest_from_lsb_bus(dest_from_lsb_bus_to_issuer),
-           .value_from_lsb_bus(value_from_lsb_bus_to_issuer),
 
            .reset_from_rob_bus(reset_from_rob_bus_to_issuer)
          );
