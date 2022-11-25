@@ -10,6 +10,7 @@
 `include "lsb_bus.v"
 `include "rss_bus.v"
 `include "rob_bus.v"
+`include "br_predictor.v"
 
 // RISCV32I CPU top module
 // port modification allowed for debugging purposes
@@ -91,6 +92,28 @@ module cpu(input wire clk_in,              // system clock signal
                .data_to_io(data_from_mem_ctrler_to_io)
              );
 
+  wire valid_from_rob_bus_to_br_predictor;
+  wire[`REG_TYPE] pc_from_rob_bus_to_br_predictor;
+  wire is_taken_from_rob_bus_to_br_predictor;
+  wire[`INST_TYPE] inst_from_inst_fetcher_to_br_predictor;
+  wire[`REG_TYPE] pc_from_inst_fetcher_to_br_predictor;
+  wire[`REG_TYPE]next_pc_from_br_predictor_to_inst_fetcher;
+
+  br_predictor br_predictor_0(
+                 .clk(clk_in),
+                 .rst(rst_in),
+                 .rdy(rdy_in),
+
+                 // ro_buffer
+                 .valid_from_rob_bus(valid_from_rob_bus_to_br_predictor),
+                 .pc_from_rob_bus(pc_from_rob_bus_to_br_predictor),
+                 .is_taken_from_rob_bus(is_taken_from_rob_bus_to_br_predictor),
+
+                 // for inst_fetcher
+                 .inst_from_inst_fetcher(inst_from_inst_fetcher_to_br_predictor),
+                 .pc_from_inst_fetcher(pc_from_inst_fetcher_to_br_predictor),
+                 .next_pc_to_inst_fetcher(next_pc_from_br_predictor_to_inst_fetcher));
+
   // inst fetcher related
   wire valid_from_inst_fetcher_to_icache;
   wire[`ADDR_TYPE] addr_from_inst_fetcher_to_icache;
@@ -102,7 +125,7 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`REG_TYPE] next_pc_from_inst_fetcher_to_issuer;
 
   wire reset_from_rob_bus_to_inst_fetcher;
-  wire[`REG_TYPE] pc_from_rob_bus_to_inst_fetcher;
+  wire[`REG_TYPE] next_pc_from_rob_bus_to_inst_fetcher;
 
   inst_fetcher inst_fetcher_0(
                  .clk(clk_in),
@@ -121,8 +144,12 @@ module cpu(input wire clk_in,              // system clock signal
                  .next_pc_to_issuer(next_pc_from_inst_fetcher_to_issuer),
                  .inst_to_issuer(inst_from_inst_fetcher_to_issuer),
 
+                 .inst_to_br_predictor(inst_from_inst_fetcher_to_br_predictor),
+                 .pc_to_br_predictor(pc_from_inst_fetcher_to_br_predictor),
+                 .next_pc_from_br_predictor(next_pc_from_br_predictor_to_inst_fetcher),
+
                  .reset_from_rob_bus(reset_from_rob_bus_to_inst_fetcher),
-                 .pc_from_rob_bus(pc_from_rob_bus_to_inst_fetcher)
+                 .next_pc_from_rob_bus(next_pc_from_rob_bus_to_inst_fetcher)
                );
 
   wire[`REG_ID_TYPE] rs_from_issuer_to_reg_file;
@@ -155,6 +182,7 @@ module cpu(input wire clk_in,              // system clock signal
   wire valid_from_issuer_to_ro_buffer;
   wire[`ISSUER_TO_ROB_SIGNAL_TYPE] signal_from_issuer_to_ro_buffer;
   wire[`REG_ID_TYPE] rd_from_issuer_to_ro_buffer; // for normal instruction only
+  wire[`REG_TYPE] pc_from_issuer_to_ro_buffer; // for branch only
   wire[`REG_TYPE] next_pc_from_issuer_to_ro_buffer; // for branch only
 
   wire[`RO_BUFFER_ID_TYPE] dest_from_issuer_to_ls_buffer;
@@ -203,7 +231,10 @@ module cpu(input wire clk_in,              // system clock signal
   // rob bus
   wire reset_from_ro_buffer_to_rob_bus;
   wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
+  wire[`REG_TYPE] next_pc_from_ro_buffer_to_rob_bus;
   wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer_to_rob_bus;
+  wire br_from_ro_buffer_to_rob_bus;
+  wire is_taken_from_ro_buffer_to_rob_bus;
 
   wire reset_from_rob_bus_to_issuer;
   wire reset_from_rob_bus_to_rs_station;
@@ -215,13 +246,20 @@ module cpu(input wire clk_in,              // system clock signal
   rob_bus rob_bus_0(
             .reset_from_ro_buffer(reset_from_ro_buffer_to_rob_bus),
             .pc_from_ro_buffer(pc_from_ro_buffer_to_rob_bus),
+            .next_pc_from_ro_buffer(next_pc_from_ro_buffer_to_rob_bus),
             .dest_from_ro_buffer(dest_from_ro_buffer_to_rob_bus),
+            .br_from_ro_buffer(br_from_ro_buffer_to_rob_bus),
+            .is_taken_from_ro_buffer(is_taken_from_ro_buffer_to_rob_bus),
 
             .reset_to_inst_fetcher(reset_from_rob_bus_to_inst_fetcher),
-            .pc_to_inst_fetcher(pc_from_rob_bus_to_inst_fetcher),
+            .next_pc_to_inst_fetcher(next_pc_from_rob_bus_to_inst_fetcher),
 
             .reset_to_ls_buffer(reset_from_rob_bus_to_ls_buffer),
             .dest_to_ls_buffer(dest_from_rob_bus_to_ls_buffer),
+
+            .valid_to_br_predictor(valid_from_rob_bus_to_br_predictor),
+            .pc_to_br_predictor(pc_from_rob_bus_to_br_predictor),
+            .is_taken_to_br_predictor(is_taken_from_rob_bus_to_br_predictor),
 
             .reset_to_issuer(reset_from_rob_bus_to_issuer),
             .reset_to_rs_station(reset_from_rob_bus_to_rs_station),
@@ -325,6 +363,7 @@ module cpu(input wire clk_in,              // system clock signal
            .valid_to_ro_buffer(valid_from_issuer_to_ro_buffer),
            .signal_to_ro_buffer(signal_from_issuer_to_ro_buffer),
            .rd_to_ro_buffer(rd_from_issuer_to_ro_buffer),
+           .pc_to_ro_buffer(pc_from_issuer_to_ro_buffer),
            .next_pc_to_ro_buffer(next_pc_from_issuer_to_ro_buffer),
 
            // rs station
@@ -431,6 +470,7 @@ module cpu(input wire clk_in,              // system clock signal
               .valid_from_issuer(valid_from_issuer_to_ro_buffer),
               .signal_from_issuer(signal_from_issuer_to_ro_buffer),
               .rd_from_issuer(rd_from_issuer_to_ro_buffer),
+              .pc_from_issuer(pc_from_issuer_to_ro_buffer),
               .next_pc_from_issuer(next_pc_from_issuer_to_ro_buffer),
               .dest_to_issuer(dest_from_ro_buffer_to_issuer),
 
@@ -444,7 +484,10 @@ module cpu(input wire clk_in,              // system clock signal
 
               .reset_to_rob_bus(reset_from_ro_buffer_to_rob_bus),
               .pc_to_rob_bus(pc_from_ro_buffer_to_rob_bus),
+              .next_pc_to_rob_bus(next_pc_from_ro_buffer_to_rob_bus),
               .dest_to_rob_bus(dest_from_ro_buffer_to_rob_bus),
+              .br_to_rob_bus(br_from_ro_buffer_to_rob_bus),
+              .is_taken_to_rob_bus(is_taken_from_ro_buffer_to_rob_bus),
 
               .reset_from_rob_bus(reset_from_rob_bus_to_ro_buffer),
 

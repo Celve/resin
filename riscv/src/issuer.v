@@ -43,6 +43,7 @@ module issuer(
     output reg valid_to_ro_buffer,
     output reg[`ISSUER_TO_ROB_SIGNAL_TYPE] signal_to_ro_buffer,
     output reg[`REG_ID_TYPE] rd_to_ro_buffer, // for normal instruction only
+    output reg[`REG_TYPE] pc_to_ro_buffer,
     output reg[`REG_TYPE] next_pc_to_ro_buffer, // for branch only
 
     // for reorder buffer
@@ -110,6 +111,7 @@ module issuer(
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE
                           : is_load_or_store ? `ISSUER_TO_ROB_SIGNAL_LOAD
                           : is_branch ? `ISSUER_TO_ROB_SIGNAL_BRANCH : `ISSUER_TO_ROB_SIGNAL_NORMAL;
+      pc_to_ro_buffer <= pc_from_inst_fetcher;
       next_pc_to_ro_buffer <= next_pc_from_inst_fetcher;
 
       if (is_load_or_store) begin

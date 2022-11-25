@@ -22,9 +22,14 @@ module inst_fetcher(
     output wire[`REG_TYPE] next_pc_to_issuer,
     output wire[`INST_TYPE] inst_to_issuer,
 
+    // ports for predictor
+    output wire[`INST_TYPE] inst_to_br_predictor,
+    output wire[`REG_TYPE] pc_to_br_predictor,
+    input wire[`REG_TYPE] next_pc_from_br_predictor,
+
     // ports for rob bus
     input wire reset_from_rob_bus,
-    input wire[`REG_TYPE] pc_from_rob_bus
+    input wire[`REG_TYPE] next_pc_from_rob_bus
   );
 
   parameter[2:0] IDLE = 0; // instruction fetcher has nothing to do
@@ -35,31 +40,34 @@ module inst_fetcher(
   reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
   reg cache_valid_bits[`CACHE_SIZE - 1:0];
   reg[2:0] state;
-  reg[`REG_TYPE] pc; // means fetched
-  reg[`REG_TYPE] next_pc; // means next fetched
+  reg[`REG_TYPE] pc;
+  wire[`REG_TYPE] next_pc;
 
   wire[`CACHE_TAG_TYPE] tag = pc[`CACHE_TAG_RANGE];
   wire[`CACHE_INDEX_TYPE] index = pc[`CACHE_INDEX_RANGE];
   wire[`CACHE_OFFSET_TYPE] offset = pc[`CACHE_OFFSET_RANGE];
-
   wire hit = cache_valid_bits[index] && cache_tags[index] == tag;
+
+  wire[`INST_TYPE] inst = hit ? {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]} : 0;
+
+  assign inst_to_br_predictor = inst;
+  assign pc_to_br_predictor = pc;
+  assign next_pc = next_pc_from_br_predictor;
 
   assign ready_to_issuer = hit;
   assign pc_to_issuer = pc;
   assign next_pc_to_issuer = next_pc;
-  assign inst_to_issuer = hit ? {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]} : 0;
+  assign inst_to_issuer = inst;
 
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus && hit && !is_any_full) begin
       pc <= next_pc;
-      next_pc <= next_pc + 4;
     end
 
     // just for reset
     if (rst) begin
       state <= IDLE;
       pc <= 0;
-      next_pc <= 4;
       for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
@@ -70,8 +78,8 @@ module inst_fetcher(
       addr_to_mem_ctrler <= 0;
     end else begin
       if (reset_from_rob_bus) begin
-        pc <= pc_from_rob_bus;
-        next_pc <= pc_from_rob_bus + 4; // lack of prediction
+        pc <= next_pc_from_rob_bus;
+        // next_pc <= pc_from_rob_bus + 4; // lack of prediction
       end
 
       case (state)

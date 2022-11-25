@@ -15,6 +15,7 @@ module ro_buffer(
     input wire valid_from_issuer,
     input wire[`ISSUER_TO_ROB_SIGNAL_TYPE] signal_from_issuer,
     input wire[`REG_ID_TYPE] rd_from_issuer, // for normal instruction only
+    input wire[`REG_TYPE] pc_from_issuer,
     input wire[`REG_TYPE] next_pc_from_issuer, // for branch only
     output wire[`RO_BUFFER_ID_TYPE] dest_to_issuer,
 
@@ -30,7 +31,10 @@ module ro_buffer(
     // for rob bus
     output reg reset_to_rob_bus,
     output reg[`REG_TYPE] pc_to_rob_bus,
+    output reg[`REG_TYPE] next_pc_to_rob_bus,
     output reg[`RO_BUFFER_ID_TYPE] dest_to_rob_bus,
+    output reg br_to_rob_bus,
+    output reg is_taken_to_rob_bus,
 
     input wire reset_from_rob_bus,
 
@@ -57,6 +61,7 @@ module ro_buffer(
   reg[`ISSUER_TO_ROB_SIGNAL_TYPE] signal[`RO_BUFFER_TYPE];
   reg[`REG_TYPE] value[`RO_BUFFER_TYPE];
   reg[`REG_ID_TYPE] rd[`RO_BUFFER_TYPE];
+  reg[`REG_TYPE] pc[`RO_BUFFER_TYPE];
   reg[`REG_TYPE] supposed_next_pc[`RO_BUFFER_TYPE];
   reg[`REG_TYPE] correct_next_pc[`RO_BUFFER_TYPE];
 
@@ -119,6 +124,8 @@ module ro_buffer(
       dest_to_reg_file <= 0;
       rd_to_reg_file <= 0;
       value_to_reg_file <= 0;
+      br_to_rob_bus <= 0;
+      is_taken_to_rob_bus <= 0;
 
       for (integer i = 1; i < `RO_BUFFER_SIZE_PLUS_1; i++) begin
         signal[i] <= 0;
@@ -139,6 +146,7 @@ module ro_buffer(
         status[tail] <= 0;
         rd[tail] <= rd_from_issuer;
         supposed_next_pc[tail] <= next_pc_from_issuer;
+        pc[tail] <= pc_from_issuer;
       end
     end
   end
@@ -157,7 +165,7 @@ module ro_buffer(
     end
   end
 
-  wire[`REG_TYPE] current_pc = supposed_next_pc[head] - 4;
+  wire[`REG_TYPE] current_pc = pc[head];
   wire[`REG_TYPE] right_next_pc = correct_next_pc[head];
   wire[1:0] current_signal = signal[head];
   wire current_status = status[head];
@@ -173,6 +181,8 @@ module ro_buffer(
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
         dest_to_rob_bus <= head;
+        br_to_rob_bus <= 0;
+        is_taken_to_rob_bus <= 0;
       end else if (status[head]) begin
         head <= head == `RO_BUFFER_SIZE ? 1 : head + 1;
         status[head] <= 0;
@@ -186,19 +196,29 @@ module ro_buffer(
         if (signal[head] == `ISSUER_TO_ROB_SIGNAL_BRANCH) begin
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
             reset_to_rob_bus <= 1;
-            pc_to_rob_bus <= correct_next_pc[head];
+            next_pc_to_rob_bus <= correct_next_pc[head];
           end
+          br_to_rob_bus <= 1;
+          is_taken_to_rob_bus <= correct_next_pc[head] != (pc[head] + 4);
+          pc_to_rob_bus <= pc[head];
+        end else begin
+          br_to_rob_bus <= 0;
+          is_taken_to_rob_bus <= 0;
         end
       end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_LOAD) begin
         dest_to_rob_bus <= head;
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
         dest_to_rob_bus <= 0;
+        br_to_rob_bus <= 0;
+        is_taken_to_rob_bus <= 0;
       end else begin
         dest_to_reg_file <= 0;
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
         dest_to_rob_bus <= 0;
+        br_to_rob_bus <= 0;
+        is_taken_to_rob_bus <= 0;
       end
     end
   end

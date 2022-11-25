@@ -16,7 +16,7 @@ module decoder(
     output reg is_store,
     output reg is_branch);
 
-  wire[6:0] opcode = inst[6:0];
+  wire[6:0] opcode = inst[`OPCODE_RANGE];
   reg temp;
 
   always @(*) begin
