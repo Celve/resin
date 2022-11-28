@@ -39,9 +39,9 @@ module new_ls_buffer(
     output reg valid_to_mem_ctrler,
     output reg rw_flag_to_mem_ctrler,
     output reg[`ADDR_TYPE] addr_to_mem_ctrler,
-    output reg[`BYTE_TYPE][`CACHE_LINE_TYPE] cache_line_to_mem_ctrler,
+    output reg[`CACHE_LINE_TYPE] cache_line_to_mem_ctrler,
     input wire ready_from_mem_ctrler,
-    input wire[`BYTE_TYPE][`CACHE_LINE_TYPE] cache_line_from_mem_ctrler,
+    input wire[`CACHE_LINE_TYPE] cache_line_from_mem_ctrler,
 
     // mem ctrler
     output reg valid_from_io_to_mem_ctrler,
@@ -444,7 +444,7 @@ module new_ls_buffer(
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus) begin
       if (dest_from_lsb_bus) begin
-        for (i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_lsb_bus;
@@ -456,7 +456,7 @@ module new_ls_buffer(
         end
       end
       if (dest_from_rss_bus) begin
-        for (i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_rss_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_rss_bus;
