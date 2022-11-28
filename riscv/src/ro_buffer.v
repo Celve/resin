@@ -83,7 +83,7 @@ module ro_buffer(
   assign is_ro_buffer_full = size >= `RO_BUFFER_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
-  
+
   integer i;
 
   assign valid_of_vj_to_issuer =
@@ -114,6 +114,11 @@ module ro_buffer(
          dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus ? value_from_rss_bus :
          0;
 
+  wire[`REG_TYPE] current_pc = pc[head];
+  wire[`REG_TYPE] right_next_pc = correct_next_pc[head];
+  wire[1:0] current_signal = signal[head];
+  wire current_status = status[head];
+
   always @(posedge clk) begin
     if (is_any_reset) begin
       head <= 1;
@@ -137,11 +142,7 @@ module ro_buffer(
         supposed_next_pc[i] <= 0;
         correct_next_pc[i] <= 0;
       end
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
+    end else begin
       if (valid_from_issuer) begin
         tail <= next_tail;
         signal[tail] <= signal_from_issuer;
@@ -150,30 +151,18 @@ module ro_buffer(
         supposed_next_pc[tail] <= next_pc_from_issuer;
         pc[tail] <= pc_from_issuer;
       end
-    end
-  end
 
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
       if (dest_from_lsb_bus) begin
         status[dest_from_lsb_bus] <= 1;
         value[dest_from_lsb_bus] <= value_from_lsb_bus;
       end
+
       if (dest_from_rss_bus) begin
         status[dest_from_rss_bus] <= 1;
         value[dest_from_rss_bus] <= value_from_rss_bus;
         correct_next_pc[dest_from_rss_bus] <= next_pc_from_rss_bus;
       end
-    end
-  end
 
-  wire[`REG_TYPE] current_pc = pc[head];
-  wire[`REG_TYPE] right_next_pc = correct_next_pc[head];
-  wire[1:0] current_signal = signal[head];
-  wire current_status = status[head];
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
       if (signal[head] == `ISSUER_TO_ROB_SIGNAL_STORE) begin
         head <= head == `RO_BUFFER_SIZE ? 1 : head + 1;
         status[head] <= 0;
@@ -207,6 +196,7 @@ module ro_buffer(
           br_to_rob_bus <= 0;
           is_taken_to_rob_bus <= 0;
         end
+
       end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_LOAD) begin
         dest_to_rob_bus <= head;
         rd_to_reg_file <= 0;
@@ -222,11 +212,6 @@ module ro_buffer(
         br_to_rob_bus <= 0;
         is_taken_to_rob_bus <= 0;
       end
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
       size <= size - (signal[head] == `ISSUER_TO_ROB_SIGNAL_STORE || status[head]) + (valid_from_issuer);
     end
   end
