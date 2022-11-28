@@ -71,17 +71,6 @@ module new_ls_buffer(
   reg[`RO_BUFFER_ID_TYPE] dest[`LOAD_STORE_BUFFER_TYPE];
   reg[`REG_TYPE] pc[`LOAD_STORE_BUFFER_TYPE];
 
-  // cache
-  reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
-  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
-  reg cache_valid_bits[`CACHE_SIZE - 1:0];
-  reg cache_dirty_bits[`CACHE_SIZE - 1:0];
-
-  wire[`CACHE_TAG_TYPE] tag = vj[head][`CACHE_TAG_RANGE];
-  wire[`CACHE_INDEX_TYPE] index = vj[head][`CACHE_INDEX_RANGE];
-  wire[`CACHE_OFFSET_TYPE] offset = vj[head][`CACHE_OFFSET_RANGE];
-  wire hit = cache_valid_bits[index] && cache_tags[index] == tag;
-
   // sext
   reg is_sign_to_sign_ext;
   reg is_byte_to_sign_ext;
@@ -97,13 +86,25 @@ module new_ls_buffer(
              .input_data(value_to_sign_ext),
              .extended_data(value_to_lsb_bus));
 
-  // whether it's full, useless currently
-  assign is_ls_buffer_full = size >= `LOAD_STORE_BUFFER_SIZE_MINUS_1; // FIXME:
-
   // state machine and circular queue
   reg[`LS_BUFFER_ID_TYPE] head;
   reg[`LS_BUFFER_ID_TYPE] tail;
   reg[`LS_BUFFER_ID_TYPE] size;
+  
+  // cache
+  reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
+  reg[`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0][`CACHE_LINE_TYPE];
+  reg cache_valid_bits[`CACHE_SIZE - 1:0];
+  reg cache_dirty_bits[`CACHE_SIZE - 1:0];
+
+  wire[`CACHE_TAG_TYPE] tag = vj[head][`CACHE_TAG_RANGE];
+  wire[`CACHE_INDEX_TYPE] index = vj[head][`CACHE_INDEX_RANGE];
+  wire[`CACHE_OFFSET_TYPE] offset = vj[head][`CACHE_OFFSET_RANGE];
+  wire hit = cache_valid_bits[index] && cache_tags[index] == tag;
+
+  
+  // whether it's full, useless currently
+  assign is_ls_buffer_full = size >= `LOAD_STORE_BUFFER_SIZE_MINUS_1; // FIXME:
 
   wire[`LS_BUFFER_ID_TYPE] next_head = head == `LOAD_STORE_BUFFER_SIZE ? 1 : head + 1;
   wire[`LS_BUFFER_ID_TYPE] next_tail = tail == `LOAD_STORE_BUFFER_SIZE ? 1 : tail + 1;
@@ -112,13 +113,14 @@ module new_ls_buffer(
   wire is_head_io_signal = vj[head] >= `IO_THRESHOLD;
   wire is_head_executable = size && !qj[head] && !qk[head] && !a[head];
   wire is_head_store = op[head] > `LHU_INST;
+  
+  reg[`LS_BUFFER_ID_TYPE] committed_tail;
   wire is_head_committed = committed_tail != 0;
 
   wire[`LS_BUFFER_ID_TYPE] committed_tail_offset =
       !committed_tail ? 0 :
       committed_tail >= head ? committed_tail - head :
       `LOAD_STORE_BUFFER_SIZE - head + committed_tail;
-  reg[`LS_BUFFER_ID_TYPE] committed_tail;
 
   // io buffer
   reg ready_from_io_buffer;
@@ -156,6 +158,9 @@ module new_ls_buffer(
   wire[`REG_TYPE] vk_head = vk[head];
   wire[`REG_TYPE] pc_head = pc[head];
   wire[`REG_TYPE] send_addr = (tag << `CACHE_INDEX_AND_LINE_WIDTH) | (index << `CACHE_LINE_WIDTH);
+  
+  // integer declaration
+  integer i;
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
@@ -172,7 +177,7 @@ module new_ls_buffer(
       if (committed_tail) begin
         tail <= committed_tail == `LOAD_STORE_BUFFER_SIZE ? 1 : committed_tail + 1;
         size <= committed_tail_offset + 1;
-        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (committed_tail >= head && (i < head || i > committed_tail)) begin
             op[i] <= 0;
             qj[i] <= 0;
@@ -197,7 +202,7 @@ module new_ls_buffer(
         head <= 1;
         tail <= 1;
         size <= 0;
-        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           op[i] <= 0;
           qj[i] <= 0;
           qk[i] <= 0;
@@ -224,7 +229,7 @@ module new_ls_buffer(
         size <= 0;
         state <= IDLE;
         committed_tail <= 0;
-        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           op[i] <= 0;
           qj[i] <= 0;
           qk[i] <= 0;
@@ -234,7 +239,7 @@ module new_ls_buffer(
           busy[i] <= 0;
           dest[i] <= 0;
         end
-        for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
+        for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
           cache_valid_bits[i] <= 0;
           cache_tags[i] <= 0;
           cache_lines[i] <= 0;
@@ -443,7 +448,7 @@ module new_ls_buffer(
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus) begin
       if (dest_from_lsb_bus) begin
-        for (integer i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_lsb_bus;
@@ -455,7 +460,7 @@ module new_ls_buffer(
         end
       end
       if (dest_from_rss_bus) begin
-        for (integer i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i <= `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_rss_bus) begin
             qj[i] <= 0;
             vj[i] <= value_from_rss_bus;
@@ -519,7 +524,7 @@ module new_ls_buffer(
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus) begin
       if (dest_from_rob_bus) begin
-        for (integer i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (busy[i] && dest[i] == dest_from_rob_bus) begin
             committed_tail <= i;
             dest[i] <= 0;

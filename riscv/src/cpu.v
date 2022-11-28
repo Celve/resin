@@ -3,7 +3,6 @@
 `include "inst_fetcher.v"
 `include "issuer.v"
 `include "rs_station.v"
-`include "ls_buffer.v"
 `include "new_ls_buffer.v"
 `include "ro_buffer.v"
 `include "reg_file.v"

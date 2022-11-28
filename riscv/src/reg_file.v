@@ -36,15 +36,17 @@ module reg_file(
   reg[`REG_ID_TYPE] status[`REG_NUM_TYPE];
 
   wire is_any_reset = rst || reset_from_rob_bus;
+  
+  integer i;
 
   always @(posedge clk) begin
     if (rst) begin
-      for (integer i = 0; i < `REG_NUM; i = i + 1) begin
+      for (i = 0; i < `REG_NUM; i = i + 1) begin
         values[i] <= 0;
         status[i] <= 0;
       end
     end else if (reset_from_rob_bus) begin
-      for (integer i = 0; i < `REG_NUM; i = i + 1) begin
+      for (i = 0; i < `REG_NUM; i = i + 1) begin
         status[i] <= 0;
       end
     end

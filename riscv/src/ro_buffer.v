@@ -83,6 +83,8 @@ module ro_buffer(
   assign is_ro_buffer_full = size >= `RO_BUFFER_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;
   assign dest_to_issuer = valid_from_issuer ? next_tail : tail;
+  
+  integer i;
 
   assign valid_of_vj_to_issuer =
          !qj_from_issuer ? 0 :
@@ -127,7 +129,7 @@ module ro_buffer(
       br_to_rob_bus <= 0;
       is_taken_to_rob_bus <= 0;
 
-      for (integer i = 1; i < `RO_BUFFER_SIZE_PLUS_1; i++) begin
+      for (i = 1; i < `RO_BUFFER_SIZE_PLUS_1; i = i + 1) begin
         signal[i] <= 0;
         status[i] <= 0;
         value[i] <= 0;

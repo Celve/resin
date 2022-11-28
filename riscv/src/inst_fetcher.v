@@ -37,7 +37,7 @@ module inst_fetcher(
   parameter[2:0] PENDING = 2; // instruction fetcher find out that the next instruction hits, however, the previous one is still in the memory management unit
 
   reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
-  reg[`CACHE_LINE_TYPE][`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
+  reg[`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0][`CACHE_LINE_TYPE];
   reg cache_valid_bits[`CACHE_SIZE - 1:0];
   reg[2:0] state;
   reg[`REG_TYPE] pc;
@@ -58,6 +58,8 @@ module inst_fetcher(
   assign pc_to_issuer = pc;
   assign next_pc_to_issuer = next_pc;
   assign inst_to_issuer = inst;
+  
+  integer i, j;
 
   always @(posedge clk) begin
     if (!rst && !reset_from_rob_bus && hit && !is_any_full) begin
@@ -68,10 +70,12 @@ module inst_fetcher(
     if (rst) begin
       state <= IDLE;
       pc <= 0;
-      for (integer i = 0; i < `CACHE_SIZE; i = i + 1) begin
+      for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
-        cache_lines[i] <= 0;
+        for (j = 0; j < `CACHE_LINE_SIZE; j = j + 1) begin
+          cache_lines[i][j] <= 0;
+        end
       end
 
       valid_to_mem_ctrler <= 0;
@@ -95,6 +99,7 @@ module inst_fetcher(
         INTERACTING: begin
           if (ready_from_mem_ctrler) begin
             if (pc == addr_to_mem_ctrler) begin
+            for (int i = 0; i < 
               cache_lines[index] <= cache_line_from_mem_ctrler;
               cache_tags[index] <= tag;
               cache_valid_bits[index] <= 1;
