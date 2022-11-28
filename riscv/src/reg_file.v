@@ -36,7 +36,7 @@ module reg_file(
   reg[`REG_ID_TYPE] status[`REG_NUM_TYPE];
 
   wire is_any_reset = rst || reset_from_rob_bus;
-  
+
   integer i;
 
   always @(posedge clk) begin
@@ -49,11 +49,7 @@ module reg_file(
       for (i = 0; i < `REG_NUM; i = i + 1) begin
         status[i] <= 0;
       end
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!rst) begin
+    end else begin
       if (!reset_from_rob_bus && rd_from_ro_buffer && rd_from_issuer && rd_from_ro_buffer == rd_from_issuer) begin
         values[rd_from_ro_buffer] <= value_from_ro_buffer;
         status[rd_from_issuer] <= dest_from_issuer;
