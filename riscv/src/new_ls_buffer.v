@@ -39,9 +39,9 @@ module new_ls_buffer(
     output reg valid_to_mem_ctrler,
     output reg rw_flag_to_mem_ctrler,
     output reg[`ADDR_TYPE] addr_to_mem_ctrler,
-    output reg[`CACHE_LINE_TYPE] cache_line_to_mem_ctrler,
+    output reg[`BYTE_TYPE][`CACHE_LINE_TYPE] cache_line_to_mem_ctrler,
     input wire ready_from_mem_ctrler,
-    input wire[`CACHE_LINE_TYPE] cache_line_from_mem_ctrler,
+    input wire[`BYTE_TYPE][`CACHE_LINE_TYPE] cache_line_from_mem_ctrler,
 
     // mem ctrler
     output reg valid_from_io_to_mem_ctrler,
@@ -90,19 +90,19 @@ module new_ls_buffer(
   reg[`LS_BUFFER_ID_TYPE] head;
   reg[`LS_BUFFER_ID_TYPE] tail;
   reg[`LS_BUFFER_ID_TYPE] size;
-  
+
   // cache
   reg[`CACHE_TAG_TYPE] cache_tags[`CACHE_SIZE - 1:0];
-  reg[`BYTE_TYPE] cache_lines[`CACHE_SIZE - 1:0][`CACHE_LINE_TYPE];
+  reg[`CACHE_LINE_TYPE] cache_lines[`CACHE_SIZE - 1:0];
   reg cache_valid_bits[`CACHE_SIZE - 1:0];
   reg cache_dirty_bits[`CACHE_SIZE - 1:0];
 
   wire[`CACHE_TAG_TYPE] tag = vj[head][`CACHE_TAG_RANGE];
   wire[`CACHE_INDEX_TYPE] index = vj[head][`CACHE_INDEX_RANGE];
-  wire[`CACHE_OFFSET_TYPE] offset = vj[head][`CACHE_OFFSET_RANGE];
+  wire[`CACHE_OFFSET_TYPE] offset = vj[head][`CACHE_OFFSET_RANGE] << 3;
   wire hit = cache_valid_bits[index] && cache_tags[index] == tag;
 
-  
+
   // whether it's full, useless currently
   assign is_ls_buffer_full = size >= `LOAD_STORE_BUFFER_SIZE_MINUS_1; // FIXME:
 
@@ -113,7 +113,7 @@ module new_ls_buffer(
   wire is_head_io_signal = vj[head] >= `IO_THRESHOLD;
   wire is_head_executable = size && !qj[head] && !qk[head] && !a[head];
   wire is_head_store = op[head] > `LHU_INST;
-  
+
   reg[`LS_BUFFER_ID_TYPE] committed_tail;
   wire is_head_committed = committed_tail != 0;
 
@@ -158,7 +158,7 @@ module new_ls_buffer(
   wire[`REG_TYPE] vk_head = vk[head];
   wire[`REG_TYPE] pc_head = pc[head];
   wire[`REG_TYPE] send_addr = (tag << `CACHE_INDEX_AND_LINE_WIDTH) | (index << `CACHE_LINE_WIDTH);
-  
+
   // integer declaration
   integer i;
 
@@ -288,21 +288,17 @@ module new_ls_buffer(
                   if (is_head_committed) begin
                     case(op[head])
                       `SB_INST: begin
-                        cache_lines[index][offset] <= vk[head][7:0];
+                        cache_lines[index][offset +: 8] <= vk[head][7:0];
                         cache_dirty_bits[index] <= 1;
                       end
 
                       `SH_INST: begin
-                        cache_lines[index][offset] <= vk[head][7:0];
-                        cache_lines[index][offset + 1] <= vk[head][15:8];
+                        cache_lines[index][offset +: 16] <= vk[head][15:0];
                         cache_dirty_bits[index] <= 1;
                       end
 
                       `SW_INST: begin
-                        cache_lines[index][offset] <= vk[head][7:0];
-                        cache_lines[index][offset + 1] <= vk[head][15:8];
-                        cache_lines[index][offset + 2] <= vk[head][23:16];
-                        cache_lines[index][offset + 3] <= vk[head][31:24];
+                        cache_lines[index][offset +: 32] <= vk[head][31:0];
                         cache_dirty_bits[index] <= 1;
                       end
                     endcase
@@ -415,11 +411,11 @@ module new_ls_buffer(
     if (!rst && !reset_from_rob_bus) begin
       if (state == IDLE && is_head_executable && !is_head_io_signal && hit && !is_head_store) begin
         case (op[head])
-          `LB_INST: value_to_sign_ext <= cache_lines[index][offset];
-          `LH_INST: value_to_sign_ext <= {cache_lines[index][offset + 1], cache_lines[index][offset]};
-          `LW_INST: value_to_sign_ext <= {cache_lines[index][offset + 3], cache_lines[index][offset + 2], cache_lines[index][offset + 1], cache_lines[index][offset]};
-          `LBU_INST: value_to_sign_ext <= cache_lines[index][offset];
-          `LHU_INST: value_to_sign_ext <= {cache_lines[index][offset + 1], cache_lines[index][offset]};
+          `LB_INST: value_to_sign_ext <= cache_lines[index][offset +: 8];
+          `LH_INST: value_to_sign_ext <= cache_lines[index][offset +: 16];
+          `LW_INST: value_to_sign_ext <= cache_lines[index][offset +: 32];
+          `LBU_INST: value_to_sign_ext <= cache_lines[index][offset +: 8];
+          `LHU_INST: value_to_sign_ext <= cache_lines[index][offset +: 16];
         endcase
         is_sign_to_sign_ext <= op[head] < `LBU_INST;
         is_byte_to_sign_ext <= op[head] == `LB_INST || op[head] == `LBU_INST;
