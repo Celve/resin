@@ -28,9 +28,11 @@ module br_predictor(
   wire[`IMM_TYPE] jal_offset = {{12{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
   wire[`IMM_TYPE] b_offset = {{20{inst[31]}}, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
 
+  integer i;
+
   always @(posedge clk) begin
     if (rst) begin
-      for (integer i = 0; i < `BRANCH_HISTORY_TABLE_SIZE; i = i + 1) begin
+      for (i = 0; i < `BRANCH_HISTORY_TABLE_SIZE; i = i + 1) begin
         bh_table[i] = 0;
       end
     end
