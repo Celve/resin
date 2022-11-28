@@ -67,10 +67,6 @@ module rs_station(
   wire is_any_reset = rst || reset_from_rob_bus;
 
   al_unit al_unit_0(
-            .clk(clk),
-            .rst(rst),
-            .rdy(rdy),
-
             .op(op_to_al_unit),
             .rs(rs_to_al_unit),
             .rt(rt_to_al_unit),
@@ -132,8 +128,8 @@ module rs_station(
       !qj[15] && !qk[15] && busy[15] ? 15 :
       !qj[16] && !qk[16] && busy[16] ? 16 :
       0;
-  
-  integer i;    
+
+  integer i;
 
   always @(posedge clk) begin
     if (is_any_reset) begin
@@ -152,11 +148,7 @@ module rs_station(
       dest_to_rss_bus <= 0;
       value_to_rss_bus <= 0;
       next_pc_to_rss_bus <= 0;
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
+    end else begin
       if (dest_from_lsb_bus) begin
         for (i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
           if (busy[i] && qj[i] == dest_from_lsb_bus) begin
@@ -181,11 +173,6 @@ module rs_station(
           end
         end
       end
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
       if (state == IDLE && exec_index) begin
         state <= WAITING;
         op_to_al_unit <= op[exec_index];
@@ -212,12 +199,8 @@ module rs_station(
         value_to_rss_bus <= 0;
         next_pc_to_rss_bus <= 0;
       end
-    end
-  end
 
-  always @(posedge clk) begin
-    // add new entry to a empty slot
-    if (!is_any_reset) begin
+      // add new entry to a empty slot
       if (dest_from_issuer) begin
         op[free_index] <= op_from_issuer;
 
@@ -249,11 +232,6 @@ module rs_station(
         dest[free_index] <= dest_from_issuer;
         busy[free_index] <= 1;
       end
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!is_any_reset) begin
       size <= size + (dest_from_issuer != 0) - (state == WAITING && valid_from_al_unit);
     end
   end

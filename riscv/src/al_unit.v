@@ -4,10 +4,6 @@
 `include "config.v"
 
 module al_unit(
-    input wire clk,
-    input wire rst,
-    input wire rdy,
-
     input wire[`OP_TYPE] op,
     input wire[`REG_TYPE] rs,
     input wire[`REG_TYPE] rt,
@@ -16,14 +12,6 @@ module al_unit(
     output reg valid,
     output reg[`REG_TYPE] value, // there are two output ports because of jalr!
     output reg[`REG_TYPE] next_pc);
-
-  always @(posedge clk) begin
-    if (rst) begin
-      valid <= 0;
-      value <= 0;
-      next_pc <= 0;
-    end
-  end
 
   always @(*) begin
     // TODO:

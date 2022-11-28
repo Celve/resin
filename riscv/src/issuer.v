@@ -100,13 +100,11 @@ module issuer(
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
-      dest_to_reg_file <= 0;
+      dest_to_rs_station <= 0;
+      dest_to_ls_buffer <= 0;
+      valid_to_ro_buffer <= 0;
       rd_to_reg_file <= 0;
-    end
-  end
-
-  always @(posedge clk) begin
-    if (!rst && !reset_from_rob_bus && ready_from_inst_fetcher && !is_any_full) begin
+    end else if (ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE
                           : is_load_or_store ? `ISSUER_TO_ROB_SIGNAL_LOAD

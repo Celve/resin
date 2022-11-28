@@ -246,18 +246,15 @@ module new_ls_buffer(
           cache_dirty_bits[i] <= 0;
         end
       end
-    end
+    end else begin
 
-    // pick one to calculate address
-    if (!rst && !reset_from_rob_bus) begin
+      // pick one to calculate address
       if (calc) begin
         vj[calc] <= vj[calc] + a[calc];
         a[calc] <= 0;
       end
-    end
 
-    // conversion of state
-    if (!rst && !reset_from_rob_bus) begin
+      // conversion of state
       case (state)
         IDLE: begin
           if (is_head_executable) begin
@@ -376,10 +373,8 @@ module new_ls_buffer(
           end
         end
       endcase
-    end
 
-    // deal with circular queue
-    if (!rst && !reset_from_rob_bus) begin
+      // deal with circular queue
       case (state)
         IDLE: begin
           if (is_head_executable && !is_head_io_signal && hit) begin
@@ -397,10 +392,8 @@ module new_ls_buffer(
           end
         end
       endcase
-    end
 
-    // deal with output
-    if (!rst && !reset_from_rob_bus) begin
+      // deal with output
       if (state == IDLE && is_head_executable && !is_head_io_signal && hit && !is_head_store) begin
         case (op[head])
           `LB_INST: value_to_sign_ext <= cache_lines[index][offset +: 8];
@@ -429,10 +422,8 @@ module new_ls_buffer(
         is_word_to_sign_ext <= 0;
         dest_to_lsb_bus <= 0;
       end
-    end
 
-    // update vi & vj
-    if (!rst && !reset_from_rob_bus) begin
+      // update vi & vj
       if (dest_from_lsb_bus) begin
         for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (qj[i] == dest_from_lsb_bus) begin
@@ -457,10 +448,8 @@ module new_ls_buffer(
           end
         end
       end
-    end
 
-    // deal with new entry
-    if (!rst && !reset_from_rob_bus)
+      // deal with new entry
       if (dest_from_issuer) begin
         op[tail] <= op_from_issuer;
 
@@ -494,15 +483,12 @@ module new_ls_buffer(
         tail <= tail == `LOAD_STORE_BUFFER_SIZE ? 1 : tail + 1;
       end
 
-    // deal with size
-    if (!rst && !reset_from_rob_bus) begin
+      // deal with size
       size <= size
            + (dest_from_issuer != 0)
            - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_committed)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)));
-    end
 
-    // update committed_store_cnt
-    if (!rst && !reset_from_rob_bus) begin
+      // update committed_store_cnt
       if (dest_from_rob_bus) begin
         for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (busy[i] && dest[i] == dest_from_rob_bus) begin
