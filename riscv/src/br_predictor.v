@@ -28,6 +28,12 @@ module br_predictor(
   wire[`IMM_TYPE] jal_offset = {{12{inst[31]}}, inst[31], inst[19:12], inst[20], inst[30:21], 1'b0};
   wire[`IMM_TYPE] b_offset = {{20{inst[31]}}, inst[31], inst[7], inst[30:25], inst[11:8], 1'b0};
 
+  assign next_pc_to_inst_fetcher =
+         opcode == 7'b1101111 ? pc_from_inst_fetcher + jal_offset :
+         opcode != 7'b1100011 ? pc_from_inst_fetcher + 4 :
+         bh_table[bh_table_index_for_inst_fetcher] > 1 ? pc_from_inst_fetcher + b_offset :
+         pc_from_inst_fetcher + 4;
+
   integer i;
 
   always @(posedge clk) begin
@@ -35,20 +41,7 @@ module br_predictor(
       for (i = 0; i < `BRANCH_HISTORY_TABLE_SIZE; i = i + 1) begin
         bh_table[i] = 0;
       end
-    end
-  end
-
-  wire temp_1 = opcode == 7'b1101111;
-  wire temp_2 = opcode == 7'b1100011;
-
-  assign next_pc_to_inst_fetcher =
-         opcode == 7'b1101111 ? pc_from_inst_fetcher + jal_offset :
-         opcode != 7'b1100011 ? pc_from_inst_fetcher + 4 :
-         bh_table[bh_table_index_for_inst_fetcher] > 1 ? pc_from_inst_fetcher + b_offset :
-         pc_from_inst_fetcher + 4;
-
-  always @(posedge clk) begin
-    if (!rst) begin
+    end else begin
       if (valid_from_rob_bus) begin
         if (is_taken_from_rob_bus) begin
           if (bh_table[bh_table_index_for_ro_buffer] != 3) begin
