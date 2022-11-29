@@ -49,7 +49,7 @@ module reg_file(
       for (i = 0; i < `REG_NUM; i = i + 1) begin
         status[i] <= 0;
       end
-    end else begin
+    end else if (rdy) begin
       if (!reset_from_rob_bus && rd_from_ro_buffer && rd_from_issuer && rd_from_ro_buffer == rd_from_issuer) begin
         values[rd_from_ro_buffer] <= value_from_ro_buffer;
         status[rd_from_issuer] <= dest_from_issuer;

@@ -148,7 +148,7 @@ module rs_station(
       dest_to_rss_bus <= 0;
       value_to_rss_bus <= 0;
       next_pc_to_rss_bus <= 0;
-    end else begin
+    end else if (rdy) begin
       if (dest_from_lsb_bus) begin
         for (i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
           if (busy[i] && qj[i] == dest_from_lsb_bus) begin

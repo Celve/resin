@@ -142,7 +142,7 @@ module ro_buffer(
         supposed_next_pc[i] <= 0;
         correct_next_pc[i] <= 0;
       end
-    end else begin
+    end else if (rdy) begin
       if (valid_from_issuer) begin
         tail <= next_tail;
         signal[tail] <= signal_from_issuer;

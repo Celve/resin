@@ -246,8 +246,7 @@ module new_ls_buffer(
           cache_dirty_bits[i] <= 0;
         end
       end
-    end else begin
-
+    end else if (rdy) begin
       // pick one to calculate address
       if (calc) begin
         vj[calc] <= vj[calc] + a[calc];

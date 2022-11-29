@@ -64,7 +64,7 @@ module mem_ctrler (
       ready_to_dcache <= 0;
       ready_to_icache <= 0;
       ready_to_io <= 0;
-    end else begin
+    end else if (rdy) begin
       // calculate addr
       if (state != 0) begin
         if (mode != WRITE_IO) begin

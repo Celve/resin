@@ -41,7 +41,7 @@ module br_predictor(
       for (i = 0; i < `BRANCH_HISTORY_TABLE_SIZE; i = i + 1) begin
         bh_table[i] = 0;
       end
-    end else begin
+    end else if (rdy) begin
       if (valid_from_rob_bus) begin
         if (is_taken_from_rob_bus) begin
           if (bh_table[bh_table_index_for_ro_buffer] != 3) begin

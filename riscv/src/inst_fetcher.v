@@ -78,7 +78,7 @@ module inst_fetcher(
 
       valid_to_mem_ctrler <= 0;
       addr_to_mem_ctrler <= 0;
-    end else begin
+    end else if (rdy) begin
       if (reset_from_rob_bus) begin
         pc <= next_pc_from_rob_bus;
         // next_pc <= pc_from_rob_bus + 4; // lack of prediction
