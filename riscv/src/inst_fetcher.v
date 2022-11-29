@@ -62,7 +62,7 @@ module inst_fetcher(
   integer i, j;
 
   always @(posedge clk) begin
-    if (!rst && !reset_from_rob_bus && hit && !is_any_full) begin
+    if (!rst && rdy && !reset_from_rob_bus && hit && !is_any_full) begin
       pc <= next_pc;
     end
 
