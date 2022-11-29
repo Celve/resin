@@ -108,6 +108,8 @@ module ro_buffer(
       size <= 0;
 
       reset_to_rob_bus <= 0;
+      pc_to_rob_bus <= 0;
+      next_pc_to_rob_bus <= 0;
       dest_to_rob_bus <= 0;
       br_to_rob_bus <= 0;
       is_taken_to_rob_bus <= 0;
@@ -121,6 +123,7 @@ module ro_buffer(
         status[i] <= 0;
         value[i] <= 0;
         rd[i] <= 0;
+        pc[i] <= 0;
         supposed_next_pc[i] <= 0;
         correct_next_pc[i] <= 0;
       end

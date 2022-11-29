@@ -51,6 +51,7 @@ module rs_station(
   reg busy[`RESERVATION_STATION_TYPE];
   reg[`RO_BUFFER_ID_TYPE] dest[`RESERVATION_STATION_TYPE];
   reg state; // only 0 or 1
+  reg[`RES_STATION_ID_TYPE] size;
 
   // for alu
   reg valid_to_al_unit;
@@ -75,8 +76,6 @@ module rs_station(
             .valid(valid_from_al_unit),
             .value(value_from_al_unit),
             .next_pc(next_pc_from_al_unit));
-
-  reg[`RES_STATION_ID_TYPE] size;
 
   assign is_rs_station_full = size >= `RESERVATION_STATION_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
 
@@ -124,15 +123,26 @@ module rs_station(
     if (is_any_reset) begin
       size <= 0;
       state <= 0;
+
       for (i = 1; i < `RESERVATION_STATION_SIZE_PLUS_1; i = i + 1) begin
         op[i] <= 0;
         qj[i] <= 0;
         qk[i] <= 0;
         vj[i] <= 0;
         vk[i] <= 0;
+        a[i] <= 0;
+        imm[i] <= 0;
         dest[i] <= 0;
         busy[i] <= 0;
       end
+
+      valid_to_al_unit <= 0;
+      op_to_al_unit <= 0;
+      rs_to_al_unit <= 0;
+      rt_to_al_unit <= 0;
+      pc_to_al_unit <= 0;
+      imm_to_al_unit <= 0;
+      last_exec_index <= 0;
 
       dest_to_rss_bus <= 0;
       value_to_rss_bus <= 0;

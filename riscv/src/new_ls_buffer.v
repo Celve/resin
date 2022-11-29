@@ -202,8 +202,12 @@ module new_ls_buffer(
       value_to_sign_ext <= 0;
     end else if (rst) begin
       dest_to_lsb_bus <= 0;
+
       valid_to_mem_ctrler <= 0;
+      rw_flag_to_mem_ctrler <= 0;
+
       valid_from_io_to_mem_ctrler <= 0;
+      rw_flag_from_io_to_mem_ctrler <= 0;
 
       ready_from_cache_buffer <= 0;
       ready_from_io_buffer <= 0;
@@ -212,6 +216,7 @@ module new_ls_buffer(
       size <= 0;
       state <= IDLE;
       committed_tail <= 0;
+
       for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
         op[i] <= 0;
         qj[i] <= 0;
@@ -222,12 +227,19 @@ module new_ls_buffer(
         busy[i] <= 0;
         dest[i] <= 0;
       end
+
       for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
         cache_lines[i] <= 0;
         cache_dirty_bits[i] <= 0;
       end
+
+      is_sign_to_sign_ext <= 0;
+      is_byte_to_sign_ext <= 0;
+      is_half_to_sign_ext <= 0;
+      is_word_to_sign_ext <= 0;
+      value_to_sign_ext <= 0;
     end else if (rdy) begin
       // pick one to calculate address
       if (calc) begin

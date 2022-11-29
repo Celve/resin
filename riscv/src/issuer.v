@@ -99,11 +99,31 @@ module issuer(
 
   always @(posedge clk) begin
     if (rst || reset_from_rob_bus) begin
-      dest_to_rs_station <= 0;
-      dest_to_ls_buffer <= 0;
-      valid_to_ro_buffer <= 0;
-      dest_to_reg_file <= 0;
       rd_to_reg_file <= 0;
+      dest_to_reg_file <= 0;
+
+      valid_to_ro_buffer <= 0;
+      signal_to_ro_buffer <= `ISSUER_TO_ROB_SIGNAL_DEFAULT;
+      rd_to_ro_buffer <= 0;
+      pc_to_ro_buffer <= 0;
+      next_pc_to_ro_buffer <= 0;
+
+      dest_to_rs_station <= 0;
+      op_to_rs_station <= `NOP_INST;
+      qj_to_rs_station <= 0;
+      qk_to_rs_station <= 0;
+      vj_to_rs_station <= 0;
+      vk_to_rs_station <= 0;
+      imm_to_rs_station <= 0;
+      pc_to_rs_station <= 0;
+
+      dest_to_ls_buffer <= 0;
+      op_to_ls_buffer <= `NOP_INST;
+      qj_to_ls_buffer <= 0;
+      qk_to_ls_buffer <= 0;
+      vj_to_ls_buffer <= 0;
+      vk_to_ls_buffer <= 0;
+      a_to_ls_buffer <= 0;
     end else if (rdy && ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;
       signal_to_ro_buffer <= is_store ? `ISSUER_TO_ROB_SIGNAL_STORE

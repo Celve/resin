@@ -73,6 +73,7 @@ module inst_fetcher(
       end
 
       valid_to_mem_ctrler <= 0;
+      addr_to_mem_ctrler <= 0;
     end else if (rdy) begin
       if (reset_from_rob_bus) begin
         pc <= next_pc_from_rob_bus;
