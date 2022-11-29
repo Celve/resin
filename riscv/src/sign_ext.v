@@ -16,7 +16,7 @@ module sign_ext(
       extended_data = input_data;
     end else if (is_byte) begin
       extended_data = {{24{input_data[7]}}, input_data[7:0]};
-    end else begin // is_half
+    end else if (is_half) begin // is_half
       extended_data = {{16{input_data[15]}}, input_data[15:0]};
     end
   end
