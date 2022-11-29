@@ -99,17 +99,6 @@ module rs_station(
       !busy[16] ? 16 :
       0;
 
-  wire[`REG_TYPE] pc1 = a[1];
-  wire[`REG_TYPE] vj1 = vj[1];
-  wire[`REG_TYPE] vk1 = vk[1];
-  wire[`RES_STATION_ID_TYPE] qk1 = qk[1];
-  wire[`RES_STATION_ID_TYPE] qj1 = qj[1];
-  wire[`REG_TYPE] pc2 = a[2];
-  wire[`REG_TYPE] vj2 = vj[2];
-  wire[`REG_TYPE] vk2 = vk[2];
-  wire[`RES_STATION_ID_TYPE] qk2 = qk[2];
-  wire[`RES_STATION_ID_TYPE] qj2 = qj[2];
-
   wire[`RES_STATION_ID_TYPE] exec_index =
       !qj[1] && !qk[1] && busy[1] ? 1 :
       !qj[2] && !qk[2] && busy[2] ? 2 :

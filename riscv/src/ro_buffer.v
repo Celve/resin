@@ -114,11 +114,6 @@ module ro_buffer(
          dest_from_rss_bus && qk_from_issuer == dest_from_rss_bus ? value_from_rss_bus :
          0;
 
-  wire[`REG_TYPE] current_pc = pc[head];
-  wire[`REG_TYPE] right_next_pc = correct_next_pc[head];
-  wire[1:0] current_signal = signal[head];
-  wire current_status = status[head];
-
   always @(posedge clk) begin
     if (is_any_reset) begin
       head <= 1;
@@ -196,7 +191,6 @@ module ro_buffer(
           br_to_rob_bus <= 0;
           is_taken_to_rob_bus <= 0;
         end
-
       end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_LOAD) begin
         dest_to_rob_bus <= head;
         rd_to_reg_file <= 0;

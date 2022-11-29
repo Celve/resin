@@ -100,7 +100,6 @@ module new_ls_buffer(
   wire[`CACHE_OFFSET_TYPE] offset = vj[head][`CACHE_OFFSET_RANGE] << 3;
   wire hit = cache_valid_bits[index] && cache_tags[index] == tag;
 
-
   // whether it's full, useless currently
   assign is_ls_buffer_full = size >= `LOAD_STORE_BUFFER_SIZE_MINUS_1; // FIXME:
 

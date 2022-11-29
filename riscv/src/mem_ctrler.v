@@ -41,8 +41,6 @@ module mem_ctrler (
     output reg[`BYTE_TYPE] data_to_io
   );
 
-  // FIXME: I don't take rdy and rst into consideration currently
-
   reg[3:0] state; // 0 means idle, 1 means fetching the first byte, etc.
   reg[2:0] vice_state;
   reg[2:0] mode;
