@@ -17,13 +17,11 @@ module decoder(
     output reg is_branch);
 
   wire[6:0] opcode = inst[`OPCODE_RANGE];
-  reg temp;
 
   always @(*) begin
     is_load_or_store = 0;
     is_store = 0;
     is_branch = 0;
-    temp = 0;
     case (opcode)
       7'b0110111: begin // LUI
         rd = inst[11:7];
@@ -140,7 +138,6 @@ module decoder(
         rs1 = inst[19:15];
         rs2 = inst[24:20];
         imm = 32'b0;
-        temp = 1;
         case (inst[14:12])
           3'b000: begin
             case (inst[31:25])
@@ -164,6 +161,14 @@ module decoder(
           3'b110: op = `OR_INST;
           3'b111: op = `AND_INST;
         endcase
+      end
+
+      default: begin
+        rd = 0;
+        rs1 = 0;
+        rs2 = 0;
+        imm = 0;
+        op = 0;
       end
     endcase
   end
