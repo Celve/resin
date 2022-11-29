@@ -57,7 +57,7 @@ module ro_buffer(
   reg[`RO_BUFFER_ID_TYPE] tail; // tail - 1 is the real tail
   reg[`RO_BUFFER_ID_TYPE] size;
 
-  reg[`REG_ID_TYPE] status[`RO_BUFFER_TYPE];
+  reg status[`RO_BUFFER_TYPE];
   reg[`ISSUER_TO_ROB_SIGNAL_TYPE] signal[`RO_BUFFER_TYPE];
   reg[`REG_TYPE] value[`RO_BUFFER_TYPE];
   reg[`REG_ID_TYPE] rd[`RO_BUFFER_TYPE];
@@ -66,19 +66,6 @@ module ro_buffer(
   reg[`REG_TYPE] correct_next_pc[`RO_BUFFER_TYPE];
 
   wire is_any_reset = rst || reset_from_rob_bus;
-
-  wire[2:0] temp_signal = signal[2];
-  wire[`REG_TYPE] temp_status = status[2];
-  wire[`REG_TYPE] pc4 = supposed_next_pc[4];
-  wire[`REG_TYPE] status6 = status[6];
-  wire[`REG_TYPE] pc6 = supposed_next_pc[6];
-  wire[`REG_TYPE] signal6 = signal[6];
-  wire[`REG_TYPE] value6 = value[6];
-  wire[`REG_TYPE] rd6 = rd[6];
-  wire[`REG_TYPE] pc10 = supposed_next_pc[10];
-  wire[`REG_TYPE] signal10 = signal[10];
-  wire[`REG_TYPE] value10 = value[10];
-  wire[`REG_TYPE] rd10 = rd[10];
 
   assign is_ro_buffer_full = size >= `RO_BUFFER_SIZE_MINUS_1; // FIXME: currently use strategy of pre-full
   wire[`RO_BUFFER_ID_TYPE] next_tail = tail == `RO_BUFFER_SIZE ? 1 : tail + 1;

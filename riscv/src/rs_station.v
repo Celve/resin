@@ -50,7 +50,7 @@ module rs_station(
   reg[`REG_TYPE] imm[`RESERVATION_STATION_TYPE]; // temporary supplement
   reg busy[`RESERVATION_STATION_TYPE];
   reg[`RO_BUFFER_ID_TYPE] dest[`RESERVATION_STATION_TYPE];
-  reg[2:0] state;
+  reg state; // only 0 or 1
 
   // for alu
   reg valid_to_al_unit;
