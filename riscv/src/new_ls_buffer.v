@@ -151,7 +151,7 @@ module new_ls_buffer(
   integer i;
 
   always @(posedge clk) begin
-    if (rst || reset_from_rob_bus) begin
+    if (reset_from_rob_bus) begin
       if (ready_from_mem_ctrler_to_io) begin
         ready_from_io_buffer <= 1;
         byte_from_io_buffer <= byte_from_mem_ctrler_to_io;
@@ -208,31 +208,33 @@ module new_ls_buffer(
       is_word_to_sign_ext <= 0;
       dest_to_lsb_bus <= 0;
       value_to_sign_ext <= 0;
-      if (rst) begin
-        ready_from_io_buffer <= 0;
-        ready_from_cache_buffer <= 0;
+    end else if (rst) begin
+      dest_to_lsb_bus <= 0;
+      valid_to_mem_ctrler <= 0;
+      valid_from_io_to_mem_ctrler <= 0;
+      ready_from_cache_buffer <= 0;
+      ready_from_io_buffer <= 0;
 
-        head <= 1;
-        tail <= 1;
-        size <= 0;
-        state <= IDLE;
-        committed_tail <= 0;
-        for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
-          op[i] <= 0;
-          qj[i] <= 0;
-          qk[i] <= 0;
-          vj[i] <= 0;
-          vk[i] <= 0;
-          a[i] <= 0;
-          busy[i] <= 0;
-          dest[i] <= 0;
-        end
-        for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
-          cache_valid_bits[i] <= 0;
-          cache_tags[i] <= 0;
-          cache_lines[i] <= 0;
-          cache_dirty_bits[i] <= 0;
-        end
+      head <= 1;
+      tail <= 1;
+      size <= 0;
+      state <= IDLE;
+      committed_tail <= 0;
+      for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
+        op[i] <= 0;
+        qj[i] <= 0;
+        qk[i] <= 0;
+        vj[i] <= 0;
+        vk[i] <= 0;
+        a[i] <= 0;
+        busy[i] <= 0;
+        dest[i] <= 0;
+      end
+      for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
+        cache_valid_bits[i] <= 0;
+        cache_tags[i] <= 0;
+        cache_lines[i] <= 0;
+        cache_dirty_bits[i] <= 0;
       end
     end else if (rdy) begin
       // pick one to calculate address
