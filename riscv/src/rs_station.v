@@ -137,11 +137,7 @@ module rs_station(
       end
 
       valid_to_al_unit <= 0;
-      op_to_al_unit <= 0;
-      rs_to_al_unit <= 0;
-      rt_to_al_unit <= 0;
-      pc_to_al_unit <= 0;
-      imm_to_al_unit <= 0;
+
       last_exec_index <= 0;
 
       dest_to_rss_bus <= 0;

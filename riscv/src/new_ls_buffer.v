@@ -204,10 +204,8 @@ module new_ls_buffer(
       dest_to_lsb_bus <= 0;
 
       valid_to_mem_ctrler <= 0;
-      rw_flag_to_mem_ctrler <= 0;
 
       valid_from_io_to_mem_ctrler <= 0;
-      rw_flag_from_io_to_mem_ctrler <= 0;
 
       ready_from_cache_buffer <= 0;
       ready_from_io_buffer <= 0;
@@ -231,7 +229,6 @@ module new_ls_buffer(
       for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
-        cache_lines[i] <= 0;
         cache_dirty_bits[i] <= 0;
       end
 

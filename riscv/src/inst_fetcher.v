@@ -69,7 +69,6 @@ module inst_fetcher(
       for (i = 0; i < `CACHE_SIZE; i = i + 1) begin
         cache_valid_bits[i] <= 0;
         cache_tags[i] <= 0;
-        cache_lines[i] <= 0;
       end
 
       valid_to_mem_ctrler <= 0;
