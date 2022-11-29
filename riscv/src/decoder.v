@@ -22,6 +22,7 @@ module decoder(
     is_load_or_store = 0;
     is_store = 0;
     is_branch = 0;
+    op = 0;
     case (opcode)
       7'b0110111: begin // LUI
         rd = inst[11:7];
