@@ -166,16 +166,8 @@ module new_ls_buffer(
         tail <= committed_tail == `LOAD_STORE_BUFFER_SIZE ? 1 : committed_tail + 1;
         size <= committed_tail_offset + 1;
         for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
-          if (committed_tail >= head && (i < head || i > committed_tail)) begin
-            op[i] <= 0;
-            qj[i] <= 0;
-            qk[i] <= 0;
-            vj[i] <= 0;
-            vk[i] <= 0;
-            a[i] <= 0;
-            busy[i] <= 0;
-            dest[i] <= 0;
-          end else if (committed_tail < head && (i > committed_tail && i < head)) begin
+          if ((committed_tail >= head && (i < head || i > committed_tail))
+              || (committed_tail < head && (i > committed_tail && i < head))) begin
             op[i] <= 0;
             qj[i] <= 0;
             qk[i] <= 0;
@@ -212,9 +204,9 @@ module new_ls_buffer(
       dest_to_lsb_bus <= 0;
       valid_to_mem_ctrler <= 0;
       valid_from_io_to_mem_ctrler <= 0;
+
       ready_from_cache_buffer <= 0;
       ready_from_io_buffer <= 0;
-
       head <= 1;
       tail <= 1;
       size <= 0;

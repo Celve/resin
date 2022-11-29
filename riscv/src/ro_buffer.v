@@ -109,12 +109,12 @@ module ro_buffer(
 
       reset_to_rob_bus <= 0;
       dest_to_rob_bus <= 0;
+      br_to_rob_bus <= 0;
+      is_taken_to_rob_bus <= 0;
 
       dest_to_reg_file <= 0;
       rd_to_reg_file <= 0;
       value_to_reg_file <= 0;
-      br_to_rob_bus <= 0;
-      is_taken_to_rob_bus <= 0;
 
       for (i = 1; i < `RO_BUFFER_SIZE_PLUS_1; i = i + 1) begin
         signal[i] <= 0;

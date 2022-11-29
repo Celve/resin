@@ -102,6 +102,7 @@ module issuer(
       dest_to_rs_station <= 0;
       dest_to_ls_buffer <= 0;
       valid_to_ro_buffer <= 0;
+      dest_to_reg_file <= 0;
       rd_to_reg_file <= 0;
     end else if (rdy && ready_from_inst_fetcher && !is_any_full) begin
       valid_to_ro_buffer <= 1;

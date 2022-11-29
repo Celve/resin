@@ -62,10 +62,6 @@ module inst_fetcher(
   integer i, j;
 
   always @(posedge clk) begin
-    if (!rst && rdy && !reset_from_rob_bus && hit && !is_any_full) begin
-      pc <= next_pc;
-    end
-
     // just for reset
     if (rst) begin
       state <= IDLE;
@@ -77,11 +73,12 @@ module inst_fetcher(
       end
 
       valid_to_mem_ctrler <= 0;
-      addr_to_mem_ctrler <= 0;
     end else if (rdy) begin
       if (reset_from_rob_bus) begin
         pc <= next_pc_from_rob_bus;
         // next_pc <= pc_from_rob_bus + 4; // lack of prediction
+      end else if (hit && !is_any_full) begin
+        pc <= next_pc;
       end
 
       case (state)
