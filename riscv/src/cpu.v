@@ -53,7 +53,7 @@ module cpu(input wire clk_in,              // system clock signal
   wire is_ls_buffer_full;
   wire is_rs_station_full;
   wire is_ro_buffer_full;
-  wire is_any_full = is_ls_buffer_full | is_rs_station_full | is_ro_buffer_full | is_io_buffer_full;
+  wire is_any_full = is_ls_buffer_full | is_rs_station_full | is_ro_buffer_full;
 
   // connection between ram and mem ctrler
   assign data_from_ram_to_mem_ctrler = mem_din;
@@ -65,6 +65,9 @@ module cpu(input wire clk_in,              // system clock signal
                .clk(clk_in),
                .rst(rst_in),
                .rdy(rdy_in),
+
+               .is_io_buffer_full(is_io_buffer_full),
+
                .data_from_ram(data_from_ram_to_mem_ctrler),
                .rw_select_to_ram(rw_select_from_mem_ctrler_to_ram),
                .addr_to_ram(addr_from_mem_ctrler_to_ram),

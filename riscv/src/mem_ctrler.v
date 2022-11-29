@@ -14,6 +14,8 @@ module mem_ctrler (
     input wire rst,
     input wire rdy,
 
+    input wire is_io_buffer_full,
+
     input wire[7:0] data_from_ram,
     output reg rw_select_to_ram,
     output reg[`ADDR_TYPE] addr_to_ram,
@@ -74,7 +76,7 @@ module mem_ctrler (
             READ_IO, WRITE_IO: addr_to_ram <= addr_from_io;
           endcase
           state <= state + 1;
-        end else begin
+        end else begin // it would be finished immediately
           addr_to_ram <= 0;
           state <= 0;
         end
@@ -97,7 +99,7 @@ module mem_ctrler (
               if (!rw_flag_from_io) begin
                 vice_state <= 1;
                 vice_mode <= READ_IO;
-              end else begin
+              end else if (!is_io_buffer_full) begin // when it's full, we should stall
                 state <= 1;
                 mode <= WRITE_IO;
               end
