@@ -95,13 +95,14 @@ module mem_ctrler (
         0: begin
           if (valid_from_io) begin
             if (!vice_mode) begin
-              addr_to_ram <= addr_from_io;
               rw_select_to_ram <= rw_flag_from_io;
-              data_to_ram <= data_from_io;
               if (!rw_flag_from_io) begin
+                addr_to_ram <= addr_from_io;
                 vice_state <= 1;
                 vice_mode <= READ_IO;
               end else if (!is_io_buffer_full) begin // when it's full, we should stall
+                addr_to_ram <= addr_from_io;
+                data_to_ram <= data_from_io;
                 state <= 1;
                 mode <= WRITE_IO;
               end
