@@ -53,7 +53,7 @@ module cpu(input wire clk_in,              // system clock signal
   wire is_ls_buffer_full;
   wire is_rs_station_full;
   wire is_ro_buffer_full;
-  wire is_any_full = is_ls_buffer_full | is_rs_station_full | is_ro_buffer_full;
+  wire is_any_full = is_ls_buffer_full | is_rs_station_full | is_ro_buffer_full | is_io_buffer_full;
 
   // connection between ram and mem ctrler
   assign data_from_ram_to_mem_ctrler = mem_din;
@@ -191,7 +191,6 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`REG_TYPE] vj_from_issuer_to_ls_buffer;
   wire[`REG_TYPE] vk_from_issuer_to_ls_buffer;
   wire[`IMM_TYPE] a_from_issuer_to_ls_buffer;
-  wire[`REG_TYPE] pc_from_issuer_to_ls_buffer;
 
   // rss bus
   wire[`RO_BUFFER_ID_TYPE] dest_from_rs_station_to_rss_bus;
@@ -382,7 +381,6 @@ module cpu(input wire clk_in,              // system clock signal
            .vj_to_ls_buffer(vj_from_issuer_to_ls_buffer),
            .vk_to_ls_buffer(vk_from_issuer_to_ls_buffer),
            .a_to_ls_buffer(a_from_issuer_to_ls_buffer),
-           .pc_to_ls_buffer(pc_from_issuer_to_ls_buffer),
 
            .reset_from_rob_bus(reset_from_rob_bus_to_issuer)
          );
@@ -428,8 +426,6 @@ module cpu(input wire clk_in,              // system clock signal
                   .vj_from_issuer(vj_from_issuer_to_ls_buffer),
                   .vk_from_issuer(vk_from_issuer_to_ls_buffer),
                   .a_from_issuer(a_from_issuer_to_ls_buffer),
-                  .pc_from_issuer(pc_from_issuer_to_ls_buffer),
-
 
                   .dest_from_lsb_bus(dest_from_lsb_bus_to_ls_buffer),
                   .value_from_lsb_bus(value_from_lsb_bus_to_ls_buffer),
