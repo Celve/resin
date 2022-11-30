@@ -54,7 +54,6 @@ module rs_station(
   reg[`RES_STATION_ID_TYPE] size;
 
   // for alu
-  reg valid_to_al_unit;
   reg[`OP_TYPE] op_to_al_unit;
   reg[`REG_TYPE] rs_to_al_unit;
   reg[`REG_TYPE] rt_to_al_unit;
@@ -135,8 +134,6 @@ module rs_station(
         dest[i] <= 0;
         busy[i] <= 0;
       end
-
-      valid_to_al_unit <= 0;
 
       last_exec_index <= 0;
 
