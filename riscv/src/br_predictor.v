@@ -10,7 +10,7 @@ module br_predictor(
 
     // for ro_buffer
     input wire valid_from_rob_bus,
-    input wire[`REG_TYPE] pc_from_rob_bus,
+    input wire[`BH_TABLE_ID_TYPE] pc_from_rob_bus,
     input wire is_taken_from_rob_bus,
 
     // for issuer
@@ -21,7 +21,7 @@ module br_predictor(
 
   reg[1:0] bh_table[`BRANCH_HISTORY_TABLE_TYPE];
   wire[`BH_TABLE_ID_TYPE] bh_table_index_for_inst_fetcher = pc_from_inst_fetcher & `BRANCH_HISTORY_TABLE_SIZE_MINUS_1;
-  wire[`BH_TABLE_ID_TYPE] bh_table_index_for_ro_buffer = pc_from_rob_bus & `BRANCH_HISTORY_TABLE_SIZE_MINUS_1;
+  wire[`BH_TABLE_ID_TYPE] bh_table_index_for_ro_buffer = pc_from_rob_bus;
   wire[`INST_TYPE] inst = inst_from_inst_fetcher;
   wire[6:0] opcode = inst[`OPCODE_RANGE];
 

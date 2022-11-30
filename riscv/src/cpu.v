@@ -97,7 +97,7 @@ module cpu(input wire clk_in,              // system clock signal
              );
 
   wire valid_from_rob_bus_to_br_predictor;
-  wire[`REG_TYPE] pc_from_rob_bus_to_br_predictor;
+  wire[`BH_TABLE_ID_TYPE] pc_from_rob_bus_to_br_predictor;
   wire is_taken_from_rob_bus_to_br_predictor;
   wire[`INST_TYPE] inst_from_inst_fetcher_to_br_predictor;
   wire[`REG_TYPE] pc_from_inst_fetcher_to_br_predictor;

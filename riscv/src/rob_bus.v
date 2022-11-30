@@ -20,7 +20,7 @@ module rob_bus(
     output wire ls_select_to_ls_buffer,
 
     output wire valid_to_br_predictor,
-    output wire[`REG_TYPE] pc_to_br_predictor,
+    output wire[`BH_TABLE_ID_TYPE] pc_to_br_predictor,
     output is_taken_to_br_predictor,
 
     output wire reset_to_issuer,
@@ -37,7 +37,7 @@ module rob_bus(
   assign ls_select_to_ls_buffer = ls_select_from_ro_buffer;
 
   assign valid_to_br_predictor = br_from_ro_buffer;
-  assign pc_to_br_predictor = pc_from_ro_buffer;
+  assign pc_to_br_predictor = pc_from_ro_buffer[`BH_TABLE_ID_TYPE];
   assign is_taken_to_br_predictor = is_taken_from_ro_buffer;
 
   assign reset_to_issuer = reset_from_ro_buffer;
