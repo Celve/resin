@@ -77,13 +77,6 @@ module mem_ctrler (
             READ_DCACHE, WRITE_DCACHE: addr_to_ram <= {half_addr_from_dcache, state};
           endcase
           state <= state + 1;
-        end else if (mode == WRITE_IO) begin // it would be finished immediately
-          addr_to_ram <= 0;
-          state <= 0;
-        end else begin // namely it's READ_IO
-          addr_to_ram <= 0;
-          state <= 0;
-          vice_state <= 2;
         end
       end
 
@@ -99,15 +92,17 @@ module mem_ctrler (
           if (valid_from_io) begin
             if (!vice_mode) begin
               rw_select_to_ram <= rw_flag_from_io;
-              if (!rw_flag_from_io) begin
+              if (addr_to_ram >= `IO_THRESHOLD && addr_to_ram == addr_from_io) begin
+                addr_to_ram <= 0;
+              end else if (!rw_flag_from_io) begin
                 addr_to_ram <= addr_from_io;
-                state <= 1;
-                mode <= READ_IO;
+                vice_state <= 1;
+                vice_mode <= READ_IO;
               end else if (!is_io_buffer_full) begin // when it's full, we should stall
                 addr_to_ram <= addr_from_io;
                 data_to_ram <= data_from_io;
-                state <= 1;
-                mode <= WRITE_IO;
+                vice_mode <= WRITE_IO;
+                ready_to_io <= 1;
               end
             end
           end else if (valid_from_icache && vice_mode != READ_ICACHE) begin
@@ -127,13 +122,6 @@ module mem_ctrler (
         1: begin
           case (mode)
             WRITE_DCACHE: data_to_ram <= data_from_dcache[`BYTE_1];
-            WRITE_IO: begin
-              vice_mode <= mode;
-              ready_to_io <= 1;
-            end
-            READ_IO: begin
-              vice_mode <= mode;
-            end
           endcase
         end
 
