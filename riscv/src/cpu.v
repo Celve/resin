@@ -26,6 +26,8 @@ module cpu(input wire clk_in,              // system clock signal
 
   // implementation goes here
 
+  wire rst = rst_in | ~rdy_in;
+
   // mem ctrler related
   wire[7:0] data_from_ram_to_mem_ctrler;
   wire rw_select_from_mem_ctrler_to_ram;
@@ -63,7 +65,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   mem_ctrler mem_ctrler_0(
                .clk(clk_in),
-               .rst(rst_in),
+               .rst(rst),
                .rdy(rdy_in),
 
                .is_io_buffer_full(is_io_buffer_full),
@@ -103,7 +105,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   br_predictor br_predictor_0(
                  .clk(clk_in),
-                 .rst(rst_in),
+                 .rst(rst),
                  .rdy(rdy_in),
 
                  // ro_buffer
@@ -131,7 +133,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   inst_fetcher inst_fetcher_0(
                  .clk(clk_in),
-                 .rst(rst_in),
+                 .rst(rst),
                  .rdy(rdy_in),
 
                  .is_any_full(is_any_full),
@@ -313,7 +315,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   reg_file reg_file_0(
              .clk(clk_in),
-             .rst(rst_in),
+             .rst(rst),
              .rdy(rdy_in),
 
              .rs_from_issuer(rs_from_issuer_to_reg_file),
@@ -334,7 +336,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   issuer issuer_0(
            .clk(clk_in),
-           .rst(rst_in),
+           .rst(rst),
            .rdy(rdy_in),
 
            .is_any_full(is_any_full),
@@ -394,7 +396,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   rs_station rs_station_0(
                .clk(clk_in),
-               .rst(rst_in),
+               .rst(rst),
                .rdy(rdy_in),
 
                // for issuer
@@ -423,7 +425,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   new_ls_buffer ls_buffer_0(
                   .clk(clk_in),
-                  .rst(rst_in),
+                  .rst(rst),
                   .rdy(rdy_in),
 
                   .dest_from_issuer(dest_from_issuer_to_ls_buffer),
@@ -465,7 +467,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   ro_buffer ro_buffer_0(
               .clk(clk_in),
-              .rst(rst_in),
+              .rst(rst),
               .rdy(rdy_in),
 
               .is_ro_buffer_full(is_ro_buffer_full),
@@ -523,7 +525,7 @@ module cpu(input wire clk_in,              // system clock signal
   end
 
   always @(posedge clk_in) begin
-    if (rst_in) begin
+    if (rst) begin
 
     end else if (!rdy_in) begin
 
