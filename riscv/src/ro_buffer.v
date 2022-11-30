@@ -30,7 +30,7 @@ module ro_buffer(
 
     // for rob bus
     output reg reset_to_rob_bus,
-    output reg[`REG_TYPE] pc_to_rob_bus,
+    output reg[`BH_TABLE_ID_TYPE] pc_to_rob_bus,
     output reg[`REG_TYPE] next_pc_to_rob_bus,
     output reg[`RO_BUFFER_ID_TYPE] dest_to_rob_bus,
     output reg ls_select_to_rob_bus,

@@ -5,7 +5,7 @@
 
 module rob_bus(
     input wire reset_from_ro_buffer,
-    input wire[`REG_TYPE] pc_from_ro_buffer,
+    input wire[`BH_TABLE_ID_TYPE] pc_from_ro_buffer,
     input wire[`REG_TYPE] next_pc_from_ro_buffer,
     input wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer,
     input wire ls_select_from_ro_buffer,

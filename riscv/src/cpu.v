@@ -233,7 +233,7 @@ module cpu(input wire clk_in,              // system clock signal
 
   // rob bus
   wire reset_from_ro_buffer_to_rob_bus;
-  wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
+  wire[`BH_TABLE_ID_TYPE] pc_from_ro_buffer_to_rob_bus;
   wire[`REG_TYPE] next_pc_from_ro_buffer_to_rob_bus;
   wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer_to_rob_bus;
   wire ls_select_from_ro_buffer_to_rob_bus;
