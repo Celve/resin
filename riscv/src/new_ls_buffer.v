@@ -29,6 +29,7 @@ module new_ls_buffer(
     // for rob bus
     input wire reset_from_rob_bus,
     input wire[`RO_BUFFER_ID_TYPE] dest_from_rob_bus, // I need to record which is the last one
+    input wire ls_select_from_rob_bus,
 
     // for lsb bus
     output reg[`RO_BUFFER_ID_TYPE] dest_to_lsb_bus, // TODO: still need to design more dedicate
@@ -370,6 +371,7 @@ module new_ls_buffer(
           if (is_head_executable && !is_head_io_signal && hit) begin
             if (!is_head_store || is_head_committed) begin
               busy[head] <= 0;
+              dest[head] <= 0;
               head <= next_head;
             end
           end
@@ -378,6 +380,7 @@ module new_ls_buffer(
         READ_IO, WRITE_IO: begin
           if (ready_from_mem_ctrler_to_io || ready_from_io_buffer) begin
             busy[head] <= 0;
+            dest[head] <= 0;
             head <= next_head;
           end
         end
@@ -478,13 +481,15 @@ module new_ls_buffer(
            - ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_committed)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer)));
 
       // update committed_store_cnt
-      if (dest_from_rob_bus) begin
+      if (dest_from_rob_bus && ls_select_from_rob_bus) begin
         for (i = 1; i < `LOAD_STORE_BUFFER_SIZE_PLUS_1; i = i + 1) begin
           if (busy[i] && dest[i] == dest_from_rob_bus) begin
             committed_tail <= i;
-            dest[i] <= 0;
+            dest[i] <= 0; // store doesn't need to be committed
           end
         end
+      end else if (dest_from_rob_bus && !ls_select_from_rob_bus && !committed_tail && is_head_io_signal && dest[head] == dest_from_rob_bus) begin
+        committed_tail <= head;
       end else if ((state == IDLE && is_head_executable && !is_head_io_signal && hit && (!is_head_store || is_head_committed)) || ((state == READ_IO || state == WRITE_IO) && (ready_from_mem_ctrler_to_io || ready_from_io_buffer))) begin
         if (committed_tail == head) begin
           committed_tail <= 0;

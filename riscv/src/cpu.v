@@ -234,6 +234,8 @@ module cpu(input wire clk_in,              // system clock signal
   wire[`REG_TYPE] pc_from_ro_buffer_to_rob_bus;
   wire[`REG_TYPE] next_pc_from_ro_buffer_to_rob_bus;
   wire[`RO_BUFFER_ID_TYPE] dest_from_ro_buffer_to_rob_bus;
+  wire ls_select_from_ro_buffer_to_rob_bus;
+  wire ls_select_from_rob_bus_to_ls_buffer;
   wire br_from_ro_buffer_to_rob_bus;
   wire is_taken_from_ro_buffer_to_rob_bus;
 
@@ -249,6 +251,7 @@ module cpu(input wire clk_in,              // system clock signal
             .pc_from_ro_buffer(pc_from_ro_buffer_to_rob_bus),
             .next_pc_from_ro_buffer(next_pc_from_ro_buffer_to_rob_bus),
             .dest_from_ro_buffer(dest_from_ro_buffer_to_rob_bus),
+            .ls_select_from_ro_buffer(ls_select_from_ro_buffer_to_rob_bus),
             .br_from_ro_buffer(br_from_ro_buffer_to_rob_bus),
             .is_taken_from_ro_buffer(is_taken_from_ro_buffer_to_rob_bus),
 
@@ -257,6 +260,7 @@ module cpu(input wire clk_in,              // system clock signal
 
             .reset_to_ls_buffer(reset_from_rob_bus_to_ls_buffer),
             .dest_to_ls_buffer(dest_from_rob_bus_to_ls_buffer),
+            .ls_select_to_ls_buffer(ls_select_from_rob_bus_to_ls_buffer),
 
             .valid_to_br_predictor(valid_from_rob_bus_to_br_predictor),
             .pc_to_br_predictor(pc_from_rob_bus_to_br_predictor),
@@ -438,6 +442,7 @@ module cpu(input wire clk_in,              // system clock signal
 
                   .reset_from_rob_bus(reset_from_rob_bus_to_ls_buffer),
                   .dest_from_rob_bus(dest_from_rob_bus_to_ls_buffer),
+                  .ls_select_from_rob_bus(ls_select_from_rob_bus_to_ls_buffer),
 
                   .valid_to_mem_ctrler(valid_from_dcache_to_mem_ctrler),
                   .rw_flag_to_mem_ctrler(rw_flag_from_dcache_to_mem_ctrler),
@@ -484,6 +489,7 @@ module cpu(input wire clk_in,              // system clock signal
               .pc_to_rob_bus(pc_from_ro_buffer_to_rob_bus),
               .next_pc_to_rob_bus(next_pc_from_ro_buffer_to_rob_bus),
               .dest_to_rob_bus(dest_from_ro_buffer_to_rob_bus),
+              .ls_select_to_rob_bus(ls_select_from_ro_buffer_to_rob_bus),
               .br_to_rob_bus(br_from_ro_buffer_to_rob_bus),
               .is_taken_to_rob_bus(is_taken_from_ro_buffer_to_rob_bus),
 

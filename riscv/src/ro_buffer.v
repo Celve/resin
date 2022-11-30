@@ -33,6 +33,7 @@ module ro_buffer(
     output reg[`REG_TYPE] pc_to_rob_bus,
     output reg[`REG_TYPE] next_pc_to_rob_bus,
     output reg[`RO_BUFFER_ID_TYPE] dest_to_rob_bus,
+    output reg ls_select_to_rob_bus,
     output reg br_to_rob_bus,
     output reg is_taken_to_rob_bus,
 
@@ -73,6 +74,8 @@ module ro_buffer(
 
   integer i;
 
+  wire[`REG_TYPE] pc_head = pc[head];
+
   assign valid_of_vj_to_issuer =
          !qj_from_issuer ? 0 :
          status[qj_from_issuer] ? 1 :
@@ -111,6 +114,7 @@ module ro_buffer(
       pc_to_rob_bus <= 0;
       next_pc_to_rob_bus <= 0;
       dest_to_rob_bus <= 0;
+      ls_select_to_rob_bus <= 0;
       br_to_rob_bus <= 0;
       is_taken_to_rob_bus <= 0;
 
@@ -157,6 +161,7 @@ module ro_buffer(
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
         dest_to_rob_bus <= head;
+        ls_select_to_rob_bus <= 1;
         br_to_rob_bus <= 0;
         is_taken_to_rob_bus <= 0;
       end else if (status[head]) begin
@@ -168,6 +173,7 @@ module ro_buffer(
         rd_to_reg_file <= rd[head];
         value_to_reg_file <= value[head];
         dest_to_rob_bus <= 0;
+        ls_select_to_rob_bus <= 0;
 
         if (signal[head] == `ISSUER_TO_ROB_SIGNAL_BRANCH) begin
           if (supposed_next_pc[head] != correct_next_pc[head]) begin
@@ -182,10 +188,11 @@ module ro_buffer(
           is_taken_to_rob_bus <= 0;
         end
       end else if (signal[head] == `ISSUER_TO_ROB_SIGNAL_LOAD) begin
-        dest_to_rob_bus <= head;
+        dest_to_reg_file <= 0;
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
-        dest_to_rob_bus <= 0;
+        dest_to_rob_bus <= head;
+        ls_select_to_rob_bus <= 0;
         br_to_rob_bus <= 0;
         is_taken_to_rob_bus <= 0;
       end else begin
@@ -193,6 +200,7 @@ module ro_buffer(
         rd_to_reg_file <= 0;
         value_to_reg_file <= 0;
         dest_to_rob_bus <= 0;
+        ls_select_to_rob_bus <= 0;
         br_to_rob_bus <= 0;
         is_taken_to_rob_bus <= 0;
       end
