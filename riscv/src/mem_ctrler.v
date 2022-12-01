@@ -268,7 +268,7 @@ module mem_ctrler (
             end
             READ_IO: begin
               data_to_io <= data_from_ram;
-              if (addr_to_ram >= `CLK_THRESHOLD && data_from_ram < 224) begin
+              if (addr_to_ram < `CLK_THRESHOLD || data_from_ram < 224) begin
                 vice_state <= 0;
                 ready_to_io <= 1;
               end
