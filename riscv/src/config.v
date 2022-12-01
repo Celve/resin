@@ -60,6 +60,7 @@
 
 // constants
 `define IO_THRESHOLD 18'h30000
+`define CLK_THRESHOLD 18'h30004
 
 // utils
 `define BYTE_0 7:0

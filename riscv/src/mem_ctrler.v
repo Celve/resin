@@ -271,17 +271,21 @@ module mem_ctrler (
             READ_ICACHE: begin
               data_to_icache[`BYTE_15] <= data_from_ram;
               ready_to_icache <= 1;
+              vice_state <= 0;
             end
             READ_DCACHE: begin
               data_to_dcache[`BYTE_15] <= data_from_ram;
               ready_to_dcache <= 1;
+              vice_state <= 0;
             end
             READ_IO: begin
               data_to_io <= data_from_ram;
-              ready_to_io <= 1;
+              if (addr_to_ram < `CLK_THRESHOLD || data_from_ram > 224) begin
+                ready_to_io <= 1;
+                vice_state <= 0;
+              end
             end
           endcase
-          vice_state <= 0;
         end
       endcase
     end
