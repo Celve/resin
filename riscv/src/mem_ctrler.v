@@ -92,7 +92,7 @@ module mem_ctrler (
           if (valid_from_io) begin
             if (!vice_mode) begin
               rw_select_to_ram <= rw_flag_from_io;
-              if (addr_to_ram >= `IO_THRESHOLD && addr_to_ram == addr_from_io) begin
+              if (addr_to_ram >= `IO_THRESHOLD) begin
                 addr_to_ram <= 0;
               end else if (!rw_flag_from_io) begin
                 addr_to_ram <= addr_from_io;
@@ -268,10 +268,10 @@ module mem_ctrler (
             end
             READ_IO: begin
               data_to_io <= data_from_ram;
-              // if (addr_to_ram < `CLK_THRESHOLD || data_from_ram < 224) begin
-              vice_state <= 0;
-              ready_to_io <= 1;
-              // end
+              if (addr_to_ram < `CLK_THRESHOLD || data_from_ram < 224) begin
+                vice_state <= 0;
+                ready_to_io <= 1;
+              end
             end
           endcase
         end
