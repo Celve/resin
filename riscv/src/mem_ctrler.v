@@ -105,12 +105,12 @@ module mem_ctrler (
                 ready_to_io <= 1;
               end
             end
-          end else if (valid_from_icache && vice_mode != READ_ICACHE) begin
+          end else if (valid_from_icache && !vice_mode) begin
             addr_to_ram <= {half_addr_from_icache, state};
             rw_select_to_ram <= 0;
             state <= 1;
             mode <= READ_ICACHE;
-          end else if (valid_from_dcache && vice_mode != WRITE_DCACHE && vice_mode != READ_DCACHE) begin
+          end else if (valid_from_dcache && !vice_mode) begin
             addr_to_ram <= {half_addr_from_dcache, state};
             rw_select_to_ram <= rw_flag_from_dcache;
             data_to_ram <= data_from_dcache[`BYTE_0];
